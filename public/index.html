@@ -300,10 +300,10 @@
     const res = await fetch(`/api/stock/${ticker}`);
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Unknown error');
-    const { quote, profile } = data;
+    const { quote, profile, dividend } = data;
     const price = quote.price;
-    const dividendYield = quote.dividendYield ?? null;
-    const annualDividend = dividendYield != null ? dividendYield * price : null;
+    const dividendYield = dividend?.dividendYield ?? null;
+    const annualDividend = dividend?.annualDividend ?? null;
     const companyName = quote.name || profile?.companyName || ticker;
     return { ticker, companyName, price, annualDividend, dividendYield };
   }

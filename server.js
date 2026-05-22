@@ -28,8 +28,8 @@ app.get('/api/stock/:ticker', async (req, res) => {
 
   try {
     const [quoteRes, profileRes] = await Promise.all([
-      fetch(`https://financialmodelingprep.com/api/v3/quote/${ticker}?apikey=${API_KEY}`),
-      fetch(`https://financialmodelingprep.com/api/v3/profile/${ticker}?apikey=${API_KEY}`)
+        fetch(`https://financialmodelingprep.com/stable/quote?symbol=${ticker}&apikey=${API_KEY}`),
+        fetch(`https://financialmodelingprep.com/stable/profile?symbol=${ticker}&apikey=${API_KEY}`)
     ]);
 
     const [quoteData, profileData] = await Promise.all([

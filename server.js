@@ -37,6 +37,8 @@ app.get('/api/stock/:ticker', async (req, res) => {
       profileRes.json()
     ]);
 
+    console.log('FMP quote response:', JSON.stringify(quoteData));
+
     if (quoteData?.['Error Message'] || profileData?.['Error Message']) {
       return res.status(401).json({ error: 'Invalid API key or FMP error.' });
     }

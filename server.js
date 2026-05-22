@@ -40,18 +40,21 @@ app.get('/api/stock/:ticker', async (req, res) => {
       dividendRes.json()
     ]);
 
-    console.log('FMP quote:', JSON.stringify(quoteData));
-    console.log('FMP dividend:', JSON.stringify(dividendData));
-
     if (!quoteData || quoteData.length === 0) {
       return res.status(404).json({ error: `Ticker "${ticker}" not found.` });
     }
 
     const quote = quoteData[0];
     const profile = profileData?.[0] || {};
-    const dividend = dividendData?.[0] || {};
 
-    res.json({ quote, profile, dividend });
+    // Find the most recent dividend entry for this ticker
+    const tickerDividend = dividendData?.find(d => d.symbol === ticker) || {};
+
+    // Calculate annual dividend and yield
+    const annualDividend = tickerDividend.dividend ? tickerDividend.dividend * 4 : null;
+    const dividendYield = tickerDividend.yield ? tickerDividend.yield / 100 : null;
+
+    res.json({ quote, profile, dividend: { annualDividend, dividendYield } });
   } catch (err) {
     console.error(`Error fetching ${ticker}:`, err.message);
     res.status(500).json({ error: 'Failed to fetch stock data. Please try again.' });

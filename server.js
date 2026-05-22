@@ -7,6 +7,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3000;
 const API_KEY = process.env.FMP_API_KEY;
+console.log('API KEY loaded:', API_KEY ? 'YES' : 'NO');
 
 if (!API_KEY) {
   console.warn('⚠️  Warning: FMP_API_KEY environment variable is not set.');

@@ -4,24 +4,30 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Yield Scout — Dividend Screener</title>
+
+<!-- Google Fonts: DM Mono for code/numbers, Playfair Display for headings, DM Sans for body -->
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+
 <style>
+  /* ── CSS Variables ── */
+  /* Define colors once here so they're easy to change */
   :root {
-    --bg: #0a0a0f;
-    --surface: #111118;
-    --border: #1e1e2e;
-    --text: #e8e8f0;
-    --muted: #666680;
-    --accent: #c8a96e;
-    --accent2: #7c6fcd;
-    --excellent: #4ade80;
-    --good: #facc15;
-    --bad: #f87171;
-    --excellent-bg: rgba(74,222,128,0.07);
-    --good-bg: rgba(250,204,21,0.07);
-    --bad-bg: rgba(248,113,113,0.07);
+    --bg: #0a0a0f;                          /* page background */
+    --surface: #111118;                     /* card/input background */
+    --border: #1e1e2e;                      /* border color */
+    --text: #e8e8f0;                        /* main text */
+    --muted: #666680;                       /* secondary/hint text */
+    --accent: #c8a96e;                      /* gold accent color */
+    --accent2: #7c6fcd;                     /* purple accent for focus */
+    --excellent: #4ade80;                   /* green for excellent rating */
+    --good: #facc15;                        /* yellow for good rating */
+    --bad: #f87171;                         /* red for bad rating */
+    --excellent-bg: rgba(74,222,128,0.07);  /* faint green row background */
+    --good-bg: rgba(250,204,21,0.07);       /* faint yellow row background */
+    --bad-bg: rgba(248,113,113,0.07);       /* faint red row background */
   }
 
+  /* Reset default browser styles */
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
@@ -32,6 +38,7 @@
     overflow-x: hidden;
   }
 
+  /* Decorative background glow effects */
   body::before {
     content: '';
     position: fixed;
@@ -49,6 +56,7 @@
     pointer-events: none; z-index: 0;
   }
 
+  /* Main content container — centered with max width */
   .wrapper {
     position: relative; z-index: 1;
     max-width: 920px;
@@ -56,32 +64,38 @@
     padding: 60px 24px 100px;
   }
 
+  /* Header section — fades up on load */
   header { margin-bottom: 52px; animation: fadeUp 0.6s ease both; }
 
+  /* Small "YIELD SCOUT" label above the title */
   .logo {
     font-family: 'DM Mono', monospace;
     font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
     color: var(--accent); margin-bottom: 20px; opacity: 0.8;
   }
 
+  /* Big page title */
   h1 {
     font-family: 'Playfair Display', serif;
-    font-size: clamp(42px, 7vw, 72px);
+    font-size: clamp(42px, 7vw, 72px); /* responsive font size */
     font-weight: 900; line-height: 1; letter-spacing: -0.02em;
     color: var(--text); margin-bottom: 16px;
   }
-  h1 span { color: var(--accent); font-style: italic; }
+  h1 span { color: var(--accent); font-style: italic; } /* gold italic word */
 
+  /* Description text under the title */
   .subtitle {
     font-size: 15px; color: var(--muted);
     font-weight: 300; max-width: 440px; line-height: 1.6;
   }
 
+  /* Row of rating threshold chips e.g. "Excellent > 6%" */
   .thresholds {
     display: flex; gap: 16px; margin-top: 28px; flex-wrap: wrap;
     animation: fadeUp 0.6s 0.1s ease both;
   }
 
+  /* Individual chip pill */
   .threshold-chip {
     display: flex; align-items: center; gap: 8px;
     font-family: 'DM Mono', monospace;
@@ -90,17 +104,22 @@
     border: 1px solid var(--border); background: var(--surface);
   }
 
+  /* Colored dot inside each chip */
   .dot { width: 7px; height: 7px; border-radius: 50%; }
 
+  /* Search input area */
   .search-section { margin-bottom: 48px; animation: fadeUp 0.6s 0.15s ease both; }
 
+  /* Small label above the input */
   .ticker-label {
     font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
     color: var(--muted); font-family: 'DM Mono', monospace; margin-bottom: 8px;
   }
 
+  /* Input and button side by side */
   .input-row { display: flex; gap: 12px; align-items: stretch; }
 
+  /* Text input styling */
   input[type="text"] {
     flex: 1;
     background: var(--surface);
@@ -111,14 +130,16 @@
     font-size: 14px; letter-spacing: 0.06em;
     padding: 16px 20px; outline: none;
     transition: border-color 0.2s;
-    text-transform: uppercase;
+    text-transform: uppercase; /* auto-uppercase what user types */
   }
   input[type="text"]::placeholder {
     color: var(--muted); font-family: 'DM Sans', sans-serif;
     letter-spacing: 0; text-transform: none; font-size: 14px;
   }
+  /* Purple border when input is focused */
   input[type="text"]:focus { border-color: var(--accent2); }
 
+  /* Analyze button styling */
   button {
     background: var(--accent); color: #0a0a0f;
     border: none; border-radius: 8px;
@@ -128,15 +149,17 @@
     padding: 16px 28px; cursor: pointer;
     transition: all 0.2s; white-space: nowrap;
   }
-  button:hover { background: #d4b87a; transform: translateY(-1px); }
+  button:hover { background: #d4b87a; transform: translateY(-1px); } /* lift on hover */
   button:active { transform: translateY(0); }
   button:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
+  /* Small italic hint text below the input */
   .hint {
     font-size: 12px; color: var(--muted);
     margin-top: 10px; font-style: italic;
   }
 
+  /* Row above the results table showing "Results" label and count */
   .results-header {
     display: flex; align-items: baseline;
     justify-content: space-between; margin-bottom: 16px;
@@ -153,10 +176,12 @@
     font-size: 11px; color: var(--muted);
   }
 
+  /* Table container with rounded border */
   .table-wrap { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
 
   table { width: 100%; border-collapse: collapse; }
 
+  /* Table header row */
   thead th {
     background: var(--surface);
     font-family: 'DM Mono', monospace;
@@ -166,33 +191,42 @@
     border-bottom: 1px solid var(--border);
   }
   thead th:last-child { text-align: center; }
+
+  /* Sortable column headers — clickable */
   thead th.sortable { cursor: pointer; user-select: none; }
   thead th.sortable:hover { color: var(--text); }
   thead th .sort-arrow { margin-left: 4px; opacity: 0.4; }
-  thead th.active .sort-arrow { opacity: 1; color: var(--accent); }
+  thead th.active .sort-arrow { opacity: 1; color: var(--accent); } /* highlight active sort */
 
+  /* Table body rows */
   tbody tr {
     border-bottom: 1px solid var(--border);
     transition: background 0.15s;
-    animation: rowIn 0.35s ease both;
+    animation: rowIn 0.35s ease both; /* slide in from left */
   }
   tbody tr:last-child { border-bottom: none; }
+
+  /* Row background colors based on rating */
   tr.excellent { background: var(--excellent-bg); }
   tr.good { background: var(--good-bg); }
   tr.bad { background: var(--bad-bg); }
-  tbody tr:hover { filter: brightness(1.25); }
+  tbody tr:hover { filter: brightness(1.25); } /* brighten on hover */
 
   td { padding: 18px 20px; font-size: 14px; }
   td:last-child { text-align: center; }
 
+  /* Ticker symbol cell — large monospace */
   .ticker-cell {
     font-family: 'DM Mono', monospace;
     font-size: 15px; font-weight: 500; letter-spacing: 0.05em;
   }
+  /* Company name shown below the ticker */
   .company-name { font-size: 11px; color: var(--muted); margin-top: 2px; }
 
+  /* Number cells — monospace for alignment */
   .num { font-family: 'DM Mono', monospace; font-size: 14px; }
 
+  /* Yield percentage — colored based on rating */
   .yield-cell {
     font-family: 'DM Mono', monospace;
     font-size: 16px; font-weight: 500;
@@ -201,6 +235,7 @@
   .yield-cell.good { color: var(--good); }
   .yield-cell.bad { color: var(--bad); }
 
+  /* Rating badge pill */
   .badge {
     display: inline-block; padding: 5px 14px; border-radius: 100px;
     font-family: 'DM Mono', monospace;
@@ -211,6 +246,7 @@
   .badge.good { background: rgba(250,204,21,0.15); color: var(--good); border: 1px solid rgba(250,204,21,0.25); }
   .badge.bad { background: rgba(248,113,113,0.15); color: var(--bad); border: 1px solid rgba(248,113,113,0.25); }
 
+  /* Empty/loading/error state box */
   .state-box {
     border: 1px solid var(--border); border-radius: 10px;
     padding: 48px; text-align: center;
@@ -219,6 +255,7 @@
   .state-box .icon { font-size: 32px; margin-bottom: 14px; display: block; }
   .state-box .state-title { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--text); margin-bottom: 8px; }
 
+  /* Error row shown when a ticker fails */
   .error-row {
     display: flex; align-items: center;
     background: rgba(248,113,113,0.08);
@@ -229,6 +266,7 @@
     animation: rowIn 0.3s ease;
   }
 
+  /* Spinning loading indicator */
   .spinner {
     display: inline-block; width: 18px; height: 18px;
     border: 2px solid var(--border); border-top-color: var(--accent);
@@ -236,14 +274,19 @@
     vertical-align: middle; margin-right: 8px;
   }
 
+  /* Animation: fade up from below */
   @keyframes fadeUp {
     from { opacity: 0; transform: translateY(16px); }
     to { opacity: 1; transform: translateY(0); }
   }
+
+  /* Animation: slide in from left */
   @keyframes rowIn {
     from { opacity: 0; transform: translateX(-8px); }
     to { opacity: 1; transform: translateX(0); }
   }
+
+  /* Animation: continuous rotation for spinner */
   @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
@@ -254,6 +297,8 @@
     <div class="logo">Yield Scout</div>
     <h1>Dividend<br><span>Screener</span></h1>
     <p class="subtitle">Enter stock tickers to instantly score their dividend yield.</p>
+
+    <!-- Rating threshold chips -->
     <div class="thresholds">
       <div class="threshold-chip"><div class="dot" style="background:var(--excellent)"></div> Excellent &gt; 6%</div>
       <div class="threshold-chip"><div class="dot" style="background:var(--good)"></div> Good 4–6%</div>
@@ -261,6 +306,7 @@
     </div>
   </header>
 
+  <!-- Search input section -->
   <div class="search-section">
     <div class="ticker-label">Tickers (comma-separated)</div>
     <div class="input-row">
@@ -270,50 +316,75 @@
     <p class="hint">Tip: Try high-dividend stocks like KO, T, VZ, MO, XOM, ABBV</p>
   </div>
 
+  <!-- Results get injected here by JavaScript -->
   <div id="output"></div>
 
 </div>
 
 <script>
-  const EXCELLENT = 0.06;
-  const GOOD = 0.04;
+  // ── Rating Thresholds ──
+  const EXCELLENT = 0.06; // 6%
+  const GOOD = 0.04;      // 4%
 
+  // Returns 'excellent', 'good', or 'bad' based on yield ratio
   function getRating(y) {
     if (y >= EXCELLENT) return 'excellent';
     if (y >= GOOD) return 'good';
     return 'bad';
   }
 
+  // Returns human-readable label for each rating
   function getRatingLabel(r) {
     return { excellent: 'Excellent', good: 'Good', bad: 'Below Avg' }[r];
   }
 
+  // Formats a number to a fixed number of decimal places
   function fmt(n, d = 2) {
     return n != null ? Number(n).toFixed(d) : '—';
   }
 
+  // Stores the current results so we can re-sort without re-fetching
   let resultsData = [];
+
+  // Current sort column and direction (1 = ascending, -1 = descending)
   let sortKey = 'dividendYield';
   let sortDir = -1;
 
+  // Fetches data for a single ticker from our backend server
   async function fetchStock(ticker) {
+    // Call our own server (not FMP directly — API key is hidden on the server)
     const res = await fetch(`/api/stock/${ticker}`);
     const data = await res.json();
+
+    // If the server returned an error, throw it so we can show it to the user
     if (!res.ok) throw new Error(data.error || 'Unknown error');
+
+    // Destructure the response — server sends quote, profile, and dividend
     const { quote, profile, dividend } = data;
+
     const price = quote.price;
+
+    // Read dividend yield and annual dividend from the dividend object
     const dividendYield = dividend?.dividendYield ?? null;
     const annualDividend = dividend?.annualDividend ?? null;
+
+    // Get company name from quote or profile
     const companyName = quote.name || profile?.companyName || ticker;
+
     return { ticker, companyName, price, annualDividend, dividendYield };
   }
 
+  // Called when the user clicks Analyze or presses Enter
   async function runScreener() {
     const raw = document.getElementById('tickerInput').value.trim();
     const output = document.getElementById('output');
+
     if (!raw) { showError('Please enter at least one ticker.'); return; }
 
+    // Split input by commas or spaces, uppercase each ticker
     const tickers = raw.split(/[\s,]+/).map(t => t.toUpperCase()).filter(Boolean);
+
+    // Disable button and show loading state
     const btn = document.getElementById('searchBtn');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>Analyzing…';
@@ -321,6 +392,7 @@
 
     const results = [], errors = [];
 
+    // Fetch all tickers in parallel — if one fails, others still work
     await Promise.allSettled(tickers.map(async ticker => {
       try {
         results.push(await fetchStock(ticker));
@@ -329,20 +401,29 @@
       }
     }));
 
+    // Store results globally so sorting works later
     resultsData = results;
+
+    // Re-enable button
     btn.disabled = false;
     btn.textContent = 'Analyze';
+
+    // Render the results table
     renderTable(errors);
   }
 
+  // Renders the results table, sorted by current sortKey and sortDir
   function renderTable(errors = []) {
     const output = document.getElementById('output');
+
+    // Sort a copy of the results array
     const sorted = [...resultsData].sort((a, b) => {
-      const av = a[sortKey] ?? -Infinity;
+      const av = a[sortKey] ?? -Infinity; // null values go to the bottom
       const bv = b[sortKey] ?? -Infinity;
       return (av - bv) * sortDir;
     });
 
+    // If nothing to show, display empty state
     if (sorted.length === 0 && errors.length === 0) {
       output.innerHTML = `<div class="state-box"><span class="icon">📭</span><div class="state-title">No results</div>Could not find data for the entered tickers.</div>`;
       return;
@@ -351,7 +432,10 @@
     let html = '';
 
     if (sorted.length > 0) {
+      // Helper to show the right sort arrow for each column
       const arrowFor = k => sortKey === k ? (sortDir === 1 ? '↑' : '↓') : '↕';
+
+      // Build the table HTML
       html += `
       <div class="results-header">
         <div class="results-title">Results</div>
@@ -367,10 +451,12 @@
         </tr></thead>
         <tbody>`;
 
+      // Build a row for each stock
       sorted.forEach((s, i) => {
         const yld = s.dividendYield;
-        const hasDiv = yld != null && yld > 0;
+        const hasDiv = yld != null && yld > 0; // does this stock pay a dividend?
         const rating = hasDiv ? getRating(yld) : 'bad';
+
         html += `
           <tr class="${rating}" style="animation-delay:${i * 0.06}s">
             <td class="ticker-cell">${s.ticker}<div class="company-name">${s.companyName}</div></td>
@@ -384,6 +470,7 @@
       html += `</tbody></table></div>`;
     }
 
+    // Show any tickers that failed to load
     errors.forEach(e => {
       html += `<div class="error-row">⚠ ${e.ticker}: ${e.msg}</div>`;
     });
@@ -391,16 +478,19 @@
     output.innerHTML = html;
   }
 
+  // Called when user clicks a sortable column header
   function setSortKey(key) {
-    if (sortKey === key) sortDir *= -1;
-    else { sortKey = key; sortDir = -1; }
+    if (sortKey === key) sortDir *= -1; // flip direction if same column
+    else { sortKey = key; sortDir = -1; } // default descending for new column
     renderTable();
   }
 
+  // Shows a full-width error message
   function showError(msg) {
     document.getElementById('output').innerHTML = `<div class="state-box" style="color:var(--bad);border-color:rgba(248,113,113,0.3)"><span class="icon">⚠</span><div class="state-title">Error</div>${msg}</div>`;
   }
 
+  // Allow pressing Enter to trigger the search
   document.addEventListener('keydown', e => { if (e.key === 'Enter') runScreener(); });
 </script>
 </body>

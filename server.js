@@ -113,19 +113,22 @@ function calcSafetyScore(data) {
   return { score: Math.round(score), tier, tierClass, breakdown };
 }
 
-// ── Helper: fetch all data for one ticker ──
 async function fetchTickerData(ticker) {
-  const [quoteRes, divRes, profileRes] = await Promise.all([
+  const [quoteRes, divRes, profileRes, metricsRes] = await Promise.all([
     fetch(`https://financialmodelingprep.com/stable/quote?symbol=${ticker}&apikey=${API_KEY}`),
     fetch(`https://financialmodelingprep.com/stable/dividends?symbol=${ticker}&apikey=${API_KEY}`),
-    fetch(`https://financialmodelingprep.com/stable/profile?symbol=${ticker}&apikey=${API_KEY}`)
+    fetch(`https://financialmodelingprep.com/stable/profile?symbol=${ticker}&apikey=${API_KEY}`),
+    fetch(`https://financialmodelingprep.com/stable/key-metrics-ttm?symbol=${ticker}&apikey=${API_KEY}`)
   ]);
 
-  const [quoteData, divData, profileData] = await Promise.all([
+  const [quoteData, divData, profileData, metricsData] = await Promise.all([
     quoteRes.json(),
     divRes.json(),
-    profileRes.json()
+    profileRes.json(),
+    metricsRes.json()
   ]);
+
+  console.log(`[${ticker}] metrics:`, JSON.stringify(metricsData).slice(0, 300));
 
   if (!quoteData || quoteData.length === 0) {
     throw new Error(`Ticker "${ticker}" not found.`);
@@ -133,6 +136,7 @@ async function fetchTickerData(ticker) {
 
   const quote = quoteData[0];
   const profile = profileData?.[0] || {};
+  const metrics = Array.isArray(metricsData) && metricsData.length > 0 ? metricsData[0] : (metricsData || {});
   const price = quote.price;
   const companyName = quote.name || profile.companyName || ticker;
 
@@ -141,10 +145,13 @@ async function fetchTickerData(ticker) {
   const annualDividend = quarterlyDiv ? quarterlyDiv * 4 : null;
   const dividendYield = annualDividend && price ? annualDividend / price : null;
 
-  const payoutRatio = profile.payoutRatio ?? null;
-  const beta = profile.beta ?? quote.beta ?? null;
-  const eps = quote.eps ?? null;
+  // Try key-metrics-ttm first, then fall back to profile, then quote
+  const payoutRatio = metrics.payoutRatioTTM ?? metrics.payoutRatio ?? profile.payoutRatio ?? null;
+  const beta = metrics.betaTTM ?? profile.beta ?? quote.beta ?? null;
+  const eps = metrics.epsTTM ?? metrics.netIncomePerShareTTM ?? quote.eps ?? null;
   const sector = profile.sector || null;
+
+  console.log(`[${ticker}] payoutRatio:`, payoutRatio, '| beta:', beta, '| eps:', eps);
 
   return {
     ticker, companyName, price, annualDividend, dividendYield,

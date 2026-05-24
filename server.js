@@ -145,13 +145,26 @@ async function fetchTickerData(ticker) {
   const annualDividend = quarterlyDiv ? quarterlyDiv * 4 : null;
   const dividendYield = annualDividend && price ? annualDividend / price : null;
 
-  // Try key-metrics-ttm first, then fall back to profile, then quote
-  const payoutRatio = metrics.payoutRatioTTM ?? metrics.payoutRatio ?? profile.payoutRatio ?? null;
   const beta = metrics.betaTTM ?? profile.beta ?? quote.beta ?? null;
-  const eps = metrics.epsTTM ?? metrics.netIncomePerShareTTM ?? quote.eps ?? null;
+
+  // Calculate EPS from available fields
+  const eps = metrics.netIncomePerShareTTM
+    ?? metrics.epsTTM
+    ?? quote.eps
+    ?? null;
+
+  // Calculate payout ratio ourselves: annual dividend / EPS
+  // This is more reliable than fetching it since we already have both values
+  let payoutRatio = null;
+  if (annualDividend != null && eps != null && eps > 0) {
+    payoutRatio = (annualDividend / eps); // e.g. 0.65 = 65%
+  } else if (profile.payoutRatio != null) {
+    payoutRatio = profile.payoutRatio;
+  }
+
   const sector = profile.sector || null;
 
-  console.log(`[${ticker}] payoutRatio:`, payoutRatio, '| beta:', beta, '| eps:', eps);
+  console.log(`[${ticker}] beta: ${beta} | eps: ${eps} | payoutRatio: ${payoutRatio} | metrics keys: ${Object.keys(metrics).join(', ')}`);
 
   return {
     ticker, companyName, price, annualDividend, dividendYield,

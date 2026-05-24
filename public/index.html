@@ -17,6 +17,9 @@
     --excellent: #4ade80;
     --good: #facc15;
     --bad: #f87171;
+    --safe: #4ade80;
+    --moderate: #facc15;
+    --risky: #f87171;
     --excellent-bg: rgba(74,222,128,0.07);
     --good-bg: rgba(250,204,21,0.07);
     --bad-bg: rgba(248,113,113,0.07);
@@ -45,14 +48,14 @@
     pointer-events: none; z-index: 0;
   }
 
+  /* ── Navigation ── */
   nav {
     position: sticky; top: 0; z-index: 100;
     background: rgba(10,10,15,0.9);
     backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border);
     padding: 0 24px;
-    display: flex;
-    align-items: center;
+    display: flex; align-items: center;
   }
 
   .nav-logo {
@@ -83,19 +86,17 @@
     padding: 52px 24px 100px;
   }
 
+  /* ── Home ── */
   .home-hero {
-    text-align: center;
-    padding: 80px 24px 60px;
+    text-align: center; padding: 80px 24px 60px;
     position: relative; z-index: 1;
     animation: fadeUp 0.6s ease both;
   }
-
   .home-eyebrow {
     font-family: 'DM Mono', monospace;
     font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
     color: var(--accent); margin-bottom: 20px; opacity: 0.8;
   }
-
   .home-title {
     font-family: 'Playfair Display', serif;
     font-size: clamp(48px, 8vw, 86px);
@@ -103,36 +104,30 @@
     color: var(--text); margin-bottom: 20px;
   }
   .home-title span { color: var(--accent); font-style: italic; }
-
   .home-subtitle {
     font-size: 16px; color: var(--muted);
     font-weight: 300; max-width: 480px;
     margin: 0 auto 40px; line-height: 1.7;
   }
-
   .home-ctas {
     display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
     margin-bottom: 80px;
   }
-
   .cta-primary {
     background: var(--accent); color: #0a0a0f;
     border: none; border-radius: 8px;
     font-family: 'DM Mono', monospace;
     font-size: 12px; font-weight: 500;
     letter-spacing: 0.12em; text-transform: uppercase;
-    padding: 16px 32px; cursor: pointer;
-    transition: all 0.2s;
+    padding: 16px 32px; cursor: pointer; transition: all 0.2s;
   }
   .cta-primary:hover { background: #d4b87a; transform: translateY(-1px); }
-
   .cta-secondary {
     background: transparent; color: var(--text);
     border: 1px solid var(--border); border-radius: 8px;
     font-family: 'DM Mono', monospace;
     font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;
-    padding: 16px 32px; cursor: pointer;
-    transition: all 0.2s;
+    padding: 16px 32px; cursor: pointer; transition: all 0.2s;
   }
   .cta-secondary:hover { border-color: var(--muted); transform: translateY(-1px); }
 
@@ -143,20 +138,17 @@
     position: relative; z-index: 1;
     animation: fadeUp 0.6s 0.15s ease both;
   }
-
   .feature-card {
     background: var(--surface); border: 1px solid var(--border);
-    border-radius: 12px; padding: 24px;
-    transition: border-color 0.2s;
+    border-radius: 12px; padding: 24px; transition: border-color 0.2s;
   }
   .feature-card:hover { border-color: var(--muted); }
-
   .feature-icon { font-size: 24px; margin-bottom: 12px; }
-  .feature-title { font-size: 14px; font-weight: 500; margin-bottom: 6px; color: var(--text); }
+  .feature-title { font-size: 14px; font-weight: 500; margin-bottom: 6px; }
   .feature-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
 
+  /* ── Page headers ── */
   .page-header { margin-bottom: 32px; animation: fadeUp 0.5s ease both; }
-
   .page-title {
     font-family: 'Playfair Display', serif;
     font-size: clamp(32px, 5vw, 52px);
@@ -176,6 +168,7 @@
   }
   .dot { width: 7px; height: 7px; border-radius: 50%; }
 
+  /* ── Search ── */
   .search-section { margin-bottom: 32px; animation: fadeUp 0.5s 0.05s ease both; }
   .ticker-label {
     font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
@@ -212,6 +205,7 @@
 
   .hint { font-size: 12px; color: var(--muted); margin-top: 10px; font-style: italic; }
 
+  /* ── Tables ── */
   .results-header {
     display: flex; align-items: center;
     justify-content: space-between; margin-bottom: 12px;
@@ -221,14 +215,13 @@
     font-size: 11px; letter-spacing: 0.15em;
     text-transform: uppercase; color: var(--muted);
   }
-  .results-count { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); }
 
   .table-wrap {
     border: 1px solid var(--border); border-radius: 10px;
     overflow: hidden; overflow-x: auto;
   }
 
-  table { width: 100%; border-collapse: collapse; min-width: 560px; }
+  table { width: 100%; border-collapse: collapse; min-width: 580px; }
 
   thead th {
     background: var(--surface);
@@ -246,27 +239,30 @@
 
   tbody tr {
     border-bottom: 1px solid var(--border);
-    transition: filter 0.15s;
-    animation: rowIn 0.35s ease both;
+    transition: filter 0.15s; animation: rowIn 0.35s ease both;
   }
   tbody tr:last-child { border-bottom: none; }
   tr.excellent { background: var(--excellent-bg); }
-  tr.good { background: var(--good-bg); }
-  tr.bad { background: var(--bad-bg); }
+  tr.good      { background: var(--good-bg); }
+  tr.bad       { background: var(--bad-bg); }
+  tr.safe      { background: rgba(74,222,128,0.05); }
+  tr.moderate  { background: rgba(250,204,21,0.05); }
+  tr.risky     { background: rgba(248,113,113,0.05); }
   tbody tr:hover { filter: brightness(1.3); }
 
-  td { padding: 16px 18px; font-size: 13px; }
+  td { padding: 15px 18px; font-size: 13px; }
   td:last-child { text-align: center; }
 
-  .ticker-cell { font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 500; letter-spacing: 0.04em; }
+  .ticker-cell { font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 500; }
   .company-name { font-size: 11px; color: var(--muted); margin-top: 3px; }
   .num { font-family: 'DM Mono', monospace; font-size: 13px; }
 
   .yield-cell { font-family: 'DM Mono', monospace; font-size: 15px; font-weight: 500; }
   .yield-cell.excellent { color: var(--excellent); }
-  .yield-cell.good { color: var(--good); }
-  .yield-cell.bad { color: var(--bad); }
+  .yield-cell.good      { color: var(--good); }
+  .yield-cell.bad       { color: var(--bad); }
 
+  /* Yield rating badge */
   .badge {
     display: inline-block; padding: 4px 12px; border-radius: 100px;
     font-family: 'DM Mono', monospace;
@@ -274,9 +270,92 @@
     letter-spacing: 0.08em; text-transform: uppercase;
   }
   .badge.excellent { background: rgba(74,222,128,0.15); color: var(--excellent); border: 1px solid rgba(74,222,128,0.25); }
-  .badge.good { background: rgba(250,204,21,0.15); color: var(--good); border: 1px solid rgba(250,204,21,0.25); }
-  .badge.bad { background: rgba(248,113,113,0.15); color: var(--bad); border: 1px solid rgba(248,113,113,0.25); }
+  .badge.good      { background: rgba(250,204,21,0.15);  color: var(--good);      border: 1px solid rgba(250,204,21,0.25); }
+  .badge.bad       { background: rgba(248,113,113,0.15); color: var(--bad);       border: 1px solid rgba(248,113,113,0.25); }
 
+  /* Safety score badge */
+  .score-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 14px; border-radius: 100px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; font-weight: 500;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    cursor: help; position: relative;
+  }
+  .score-badge.safe     { background: rgba(74,222,128,0.15); color: var(--safe);     border: 1px solid rgba(74,222,128,0.3); }
+  .score-badge.moderate { background: rgba(250,204,21,0.15);  color: var(--moderate); border: 1px solid rgba(250,204,21,0.3); }
+  .score-badge.risky    { background: rgba(248,113,113,0.15); color: var(--risky);    border: 1px solid rgba(248,113,113,0.3); }
+
+  /* ── Score breakdown tooltip (hover popup) ── */
+  .score-tooltip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 10px);
+    left: 50%; transform: translateX(-50%);
+    width: 280px;
+    background: #1a1a28;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    z-index: 200;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    text-align: left;
+    pointer-events: none;
+  }
+  .score-badge:hover .score-tooltip { display: block; }
+
+  /* Arrow pointing down from tooltip */
+  .score-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%; left: 50%; transform: translateX(-50%);
+    border: 7px solid transparent;
+    border-top-color: var(--border);
+  }
+
+  .tooltip-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 12px;
+  }
+
+  .tooltip-row {
+    display: flex; align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .tooltip-row:last-child { margin-bottom: 0; }
+
+  .tooltip-label { font-size: 12px; color: var(--text); flex: 1; }
+  .tooltip-value { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); margin: 0 8px; }
+
+  /* Mini progress bar for each factor */
+  .tooltip-bar-wrap {
+    width: 60px; height: 5px;
+    background: var(--border); border-radius: 3px; overflow: hidden;
+  }
+  .tooltip-bar-fill {
+    height: 100%; border-radius: 3px;
+    transition: width 0.3s;
+  }
+
+  .tooltip-total {
+    margin-top: 12px; padding-top: 10px;
+    border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between;
+    align-items: center;
+  }
+  .tooltip-total-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--muted);
+  }
+  .tooltip-total-score {
+    font-family: 'DM Mono', monospace;
+    font-size: 16px; font-weight: 500; color: var(--accent);
+  }
+
+  /* Rank badge */
   .rank {
     display: inline-flex; align-items: center; justify-content: center;
     width: 28px; height: 28px; border-radius: 50%;
@@ -287,6 +366,7 @@
   .rank.silver { background: rgba(180,180,200,0.15); color: #b4b4c8;       border: 1px solid rgba(180,180,200,0.3); }
   .rank.bronze { background: rgba(180,120,80,0.15);  color: #b47850;       border: 1px solid rgba(180,120,80,0.3); }
 
+  /* State boxes */
   .state-box {
     border: 1px solid var(--border); border-radius: 10px;
     padding: 48px; text-align: center;
@@ -340,49 +420,50 @@
   <button class="nav-tab active" onclick="showPage('home')">Home</button>
   <button class="nav-tab" onclick="showPage('search')">Search</button>
   <button class="nav-tab" onclick="showPage('top10')">Top 10</button>
+  <button class="nav-tab" onclick="showPage('scores')">Safety Scores</button>
 </nav>
 
-<!-- HOME -->
+<!-- ══════════════════════ HOME ══════════════════════ -->
 <div id="page-home" class="page active">
   <div class="home-hero">
     <div class="home-eyebrow">Yield Scout</div>
     <h1 class="home-title">Find the Best<br><span>Dividend Stocks</span></h1>
-    <p class="home-subtitle">Screen stocks by dividend yield — so you can see what pays the most and invest with confidence.</p>
+    <p class="home-subtitle">Screen stocks by dividend yield and safety — so you can invest with confidence.</p>
     <div class="home-ctas">
       <button class="cta-primary" onclick="showPage('search')">Search a Stock</button>
-      <button class="cta-secondary" onclick="showPage('top10')">View Top 10 →</button>
+      <button class="cta-secondary" onclick="showPage('scores')">View Safety Scores →</button>
     </div>
   </div>
   <div class="home-features">
     <div class="feature-card">
       <div class="feature-icon">📈</div>
       <div class="feature-title">Dividend Yield Rating</div>
-      <div class="feature-desc">See the annual dividend return as a percentage, rated Excellent (>6%), Good (4–6%), or Below Average.</div>
+      <div class="feature-desc">Annual dividend as a % of price, rated Excellent (&gt;5%), Good (3–5%), or Below Average.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🛡️</div>
+      <div class="feature-title">Safety Score</div>
+      <div class="feature-desc">A 0–100 score combining yield, payout ratio, volatility, profitability, and sector reliability.</div>
     </div>
     <div class="feature-card">
       <div class="feature-icon">🏆</div>
       <div class="feature-title">Live Top 10</div>
-      <div class="feature-desc">The highest-yielding stocks from our curated watchlist, ranked and updated with live market data.</div>
+      <div class="feature-desc">Highest-yielding stocks from our curated watchlist, ranked with live market data.</div>
     </div>
     <div class="feature-card">
       <div class="feature-icon">🔍</div>
       <div class="feature-title">Search Any Stock</div>
-      <div class="feature-desc">Enter any ticker symbol and instantly see its price, annual dividend, yield, and rating.</div>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">↕️</div>
-      <div class="feature-title">Sortable Results</div>
-      <div class="feature-desc">Click any column header to sort results by price, dividend, or yield to compare stocks side by side.</div>
+      <div class="feature-desc">Enter any ticker and get a full dividend breakdown plus Safety Score with a hover explanation.</div>
     </div>
   </div>
 </div>
 
-<!-- SEARCH -->
+<!-- ══════════════════════ SEARCH ══════════════════════ -->
 <div id="page-search" class="page">
   <div class="wrapper">
     <div class="page-header">
       <h2 class="page-title">Stock <span>Search</span></h2>
-      <p class="page-subtitle">Enter one or more tickers to see their dividend yield and rating.</p>
+      <p class="page-subtitle">Enter one or more tickers. Hover the Safety Score badge to see the full breakdown.</p>
       <div class="thresholds">
         <div class="threshold-chip"><div class="dot" style="background:var(--excellent)"></div> Excellent &gt; 5%</div>
         <div class="threshold-chip"><div class="dot" style="background:var(--good)"></div> Good 3–5%</div>
@@ -392,21 +473,21 @@
     <div class="search-section">
       <div class="ticker-label">Tickers (comma-separated)</div>
       <div class="input-row">
-        <input type="text" id="tickerInput" placeholder="e.g. KO, T, VZ, MO, CAG, CPB" autocomplete="off">
+        <input type="text" id="tickerInput" placeholder="e.g. KO, T, VZ, MO, CAG" autocomplete="off">
         <button id="searchBtn" onclick="runScreener()">Analyze</button>
       </div>
-      <p class="hint">Tip: Try KO, T, VZ, MO, XOM, ABBV, CAG, CPB, IBM, ET</p>
+      <p class="hint">Tip: Try KO, T, VZ, MO, XOM, ABBV, CAG, CPB, IBM, O</p>
     </div>
     <div id="search-output"></div>
   </div>
 </div>
 
-<!-- TOP 10 -->
+<!-- ══════════════════════ TOP 10 ══════════════════════ -->
 <div id="page-top10" class="page">
   <div class="wrapper">
     <div class="page-header">
       <h2 class="page-title">Top <span>10</span> Dividend Stocks</h2>
-      <p class="page-subtitle">The highest-yielding stocks from our curated watchlist of 15 well-known dividend payers, ranked live.</p>
+      <p class="page-subtitle">Highest-yielding stocks from our curated watchlist, ranked live by dividend yield.</p>
     </div>
     <div id="top10-output">
       <div class="state-box">
@@ -419,16 +500,45 @@
   </div>
 </div>
 
+<!-- ══════════════════════ SAFETY SCORES ══════════════════════ -->
+<div id="page-scores" class="page">
+  <div class="wrapper">
+    <div class="page-header">
+      <h2 class="page-title">Dividend <span>Safety Scores</span></h2>
+      <p class="page-subtitle">Stocks ranked by our proprietary 0–100 Safety Score — combining yield, payout ratio, volatility, profitability, and sector. Hover any score to see the breakdown.</p>
+      <div class="thresholds">
+        <div class="threshold-chip"><div class="dot" style="background:var(--safe)"></div> Safe 70–100</div>
+        <div class="threshold-chip"><div class="dot" style="background:var(--moderate)"></div> Moderate 40–69</div>
+        <div class="threshold-chip"><div class="dot" style="background:var(--risky)"></div> Risky 0–39</div>
+      </div>
+    </div>
+    <div id="scores-output">
+      <div class="state-box">
+        <span class="icon">🛡️</span>
+        <div class="state-title">Ready to score</div>
+        <p>Click below to calculate live Safety Scores.</p>
+        <button onclick="loadScores()">Calculate Scores</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
+  // ── Navigation ──
+  let top10Loaded = false;
+  let scoresLoaded = false;
+
   function showPage(name) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
     document.getElementById('page-' + name).classList.add('active');
-    const idx = { home: 0, search: 1, top10: 2 }[name];
+    const idx = { home: 0, search: 1, top10: 2, scores: 3 }[name];
     document.querySelectorAll('.nav-tab')[idx].classList.add('active');
     if (name === 'top10' && !top10Loaded) loadTop10();
+    if (name === 'scores' && !scoresLoaded) loadScores();
   }
 
+  // ── Helpers ──
   const EXCELLENT = 0.05;
   const GOOD = 0.03;
 
@@ -437,15 +547,68 @@
     if (y >= GOOD) return 'good';
     return 'bad';
   }
-
   function getRatingLabel(r) {
     return { excellent: 'Excellent', good: 'Good', bad: 'Below Avg' }[r];
   }
-
   function fmt(n, d = 2) {
     return n != null && !isNaN(n) ? Number(n).toFixed(d) : '—';
   }
 
+  // ── Build the hover tooltip HTML from breakdown data ──
+  function buildTooltip(safety) {
+    const { score, tier, tierClass, breakdown } = safety;
+
+    // Color for each mini bar based on score ratio
+    function barColor(s, max) {
+      const ratio = s / max;
+      if (ratio >= 0.75) return '#4ade80';
+      if (ratio >= 0.4)  return '#facc15';
+      return '#f87171';
+    }
+
+    const factors = [
+      { label: 'Dividend Yield',   key: 'yield',   desc: 'Sweet spot is 3–8%. Very high yields can be a trap.' },
+      { label: 'Payout Ratio',     key: 'payout',  desc: 'Under 60% is healthy. REITs/Utilities allowed higher.' },
+      { label: 'Beta (Volatility)',key: 'beta',    desc: 'Lower = more stable. Under 0.8 is ideal for income.' },
+      { label: 'EPS (Profit)',     key: 'eps',     desc: 'Positive EPS means the company can sustain dividends.' },
+      { label: 'Sector',           key: 'sector',  desc: 'Staples, utilities, and REITs are historically reliable.' },
+    ];
+
+    let rows = factors.map(f => {
+      const b = breakdown[f.key];
+      const fillPct = Math.round((b.score / b.max) * 100);
+      const color = barColor(b.score, b.max);
+      return `
+        <div class="tooltip-row" title="${f.desc}">
+          <div class="tooltip-label">${f.label}</div>
+          <div class="tooltip-value">${b.value}</div>
+          <div class="tooltip-bar-wrap">
+            <div class="tooltip-bar-fill" style="width:${fillPct}%;background:${color}"></div>
+          </div>
+        </div>`;
+    }).join('');
+
+    return `
+      <div class="score-tooltip">
+        <div class="tooltip-title">Safety Score Breakdown</div>
+        ${rows}
+        <div class="tooltip-total">
+          <div class="tooltip-total-label">Total Score</div>
+          <div class="tooltip-total-score">${score}/100</div>
+        </div>
+      </div>`;
+  }
+
+  // ── Build a score badge with hover tooltip ──
+  function scoreBadge(safety) {
+    return `
+      <span class="score-badge ${safety.tierClass}">
+        ${safety.score}/100 · ${safety.tier}
+        ${buildTooltip(safety)}
+      </span>`;
+  }
+
+  // ── Search page ──
   let resultsData = [];
   let sortKey = 'dividendYield';
   let sortDir = -1;
@@ -469,7 +632,6 @@
     output.innerHTML = `<div class="state-box"><span class="spinner"></span> Fetching data for ${tickers.join(', ')}…</div>`;
 
     const results = [], errors = [];
-
     await Promise.allSettled(tickers.map(async ticker => {
       try { results.push(await fetchStock(ticker)); }
       catch (e) { errors.push({ ticker, msg: e.message }); }
@@ -483,7 +645,6 @@
 
   function renderSearchTable(errors = []) {
     const output = document.getElementById('search-output');
-
     const sorted = [...resultsData].sort((a, b) => {
       const av = a[sortKey] ?? -Infinity;
       const bv = b[sortKey] ?? -Infinity;
@@ -502,15 +663,16 @@
       html += `
         <div class="results-header">
           <div class="results-title">Results</div>
-          <div class="results-count">${sorted.length} stock${sorted.length>1?'s':''}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">Hover score to see breakdown</div>
         </div>
         <div class="table-wrap"><table>
           <thead><tr>
             <th>Ticker</th>
             <th class="sortable ${sortKey==='price'?'active':''}" onclick="setSearchSort('price')">Price ${arrow('price')}</th>
-            <th class="sortable ${sortKey==='annualDividend'?'active':''}" onclick="setSearchSort('annualDividend')">Ann. Dividend ${arrow('annualDividend')}</th>
+            <th class="sortable ${sortKey==='annualDividend'?'active':''}" onclick="setSearchSort('annualDividend')">Ann. Div ${arrow('annualDividend')}</th>
             <th class="sortable ${sortKey==='dividendYield'?'active':''}" onclick="setSearchSort('dividendYield')">Yield ${arrow('dividendYield')}</th>
-            <th>Rating</th>
+            <th>Yield Rating</th>
+            <th>Safety Score</th>
           </tr></thead><tbody>`;
 
       sorted.forEach((s, i) => {
@@ -521,9 +683,10 @@
           <tr class="${rating}" style="animation-delay:${i*0.06}s">
             <td class="ticker-cell">${s.ticker}<div class="company-name">${s.companyName}</div></td>
             <td class="num">$${fmt(s.price)}</td>
-            <td class="num">${hasDiv ? '$'+fmt(s.annualDividend,4) : '<span style="color:var(--muted)">No dividend</span>'}</td>
+            <td class="num">${hasDiv ? '$'+fmt(s.annualDividend,4) : '<span style="color:var(--muted)">None</span>'}</td>
             <td class="yield-cell ${rating}">${hasDiv ? (yld*100).toFixed(2)+'%' : '—'}</td>
             <td><span class="badge ${rating}">${hasDiv ? getRatingLabel(rating) : 'No Div'}</span></td>
+            <td>${s.safety ? scoreBadge(s.safety) : '<span style="color:var(--muted)">—</span>'}</td>
           </tr>`;
       });
       html += `</tbody></table></div>`;
@@ -542,7 +705,7 @@
     renderSearchTable();
   }
 
-  let top10Loaded = false;
+  // ── Top 10 page ──
   let top10Data = [];
   let top10SortKey = 'dividendYield';
   let top10SortDir = -1;
@@ -550,8 +713,7 @@
   async function loadTop10() {
     top10Loaded = false;
     const output = document.getElementById('top10-output');
-    output.innerHTML = `<div class="state-box"><span class="spinner"></span> Fetching live data… this takes a few seconds.</div>`;
-
+    output.innerHTML = `<div class="state-box"><span class="spinner"></span> Fetching live data…</div>`;
     try {
       const res = await fetch('/api/top10');
       const data = await res.json();
@@ -560,18 +722,14 @@
       top10Loaded = true;
       renderTop10Table();
     } catch (e) {
-      output.innerHTML = `<div class="state-box" style="color:var(--bad);border-color:rgba(248,113,113,0.3)">
-        <span class="icon">⚠</span>
-        <div class="state-title">Error</div>
-        ${e.message}
-        <br><br><button onclick="loadTop10()">Try Again</button>
-      </div>`;
+      output.innerHTML = `<div class="state-box" style="color:var(--bad)">
+        <span class="icon">⚠</span><div class="state-title">Error</div>${e.message}
+        <br><br><button onclick="loadTop10()">Try Again</button></div>`;
     }
   }
 
   function renderTop10Table() {
     const output = document.getElementById('top10-output');
-
     const sorted = [...top10Data].sort((a, b) => {
       const av = a[top10SortKey] ?? -Infinity;
       const bv = b[top10SortKey] ?? -Infinity;
@@ -590,7 +748,7 @@
           <th>Rank</th>
           <th>Ticker</th>
           <th class="sortable ${top10SortKey==='price'?'active':''}" onclick="setTop10Sort('price')">Price ${arrow('price')}</th>
-          <th class="sortable ${top10SortKey==='annualDividend'?'active':''}" onclick="setTop10Sort('annualDividend')">Ann. Dividend ${arrow('annualDividend')}</th>
+          <th class="sortable ${top10SortKey==='annualDividend'?'active':''}" onclick="setTop10Sort('annualDividend')">Ann. Div ${arrow('annualDividend')}</th>
           <th class="sortable ${top10SortKey==='dividendYield'?'active':''}" onclick="setTop10Sort('dividendYield')">Yield ${arrow('dividendYield')}</th>
           <th>Rating</th>
         </tr></thead><tbody>`;
@@ -601,7 +759,6 @@
       const yld = s.dividendYield;
       const hasDiv = yld != null && yld > 0;
       const rating = hasDiv ? getRating(yld) : 'bad';
-
       html += `
         <tr class="${rating}" style="animation-delay:${i*0.06}s">
           <td><span class="rank ${rankClass}">${originalRank}</span></td>
@@ -612,7 +769,6 @@
           <td><span class="badge ${rating}">${hasDiv ? getRatingLabel(rating) : 'No Div'}</span></td>
         </tr>`;
     });
-
     html += `</tbody></table></div>`;
     output.innerHTML = html;
   }
@@ -623,6 +779,81 @@
     renderTop10Table();
   }
 
+  // ── Safety Scores page ──
+  let scoresData = [];
+  let scoresSortKey = 'safety.score';
+  let scoresSortDir = -1;
+
+  async function loadScores() {
+    scoresLoaded = false;
+    const output = document.getElementById('scores-output');
+    output.innerHTML = `<div class="state-box"><span class="spinner"></span> Calculating safety scores… this takes a few seconds.</div>`;
+    try {
+      const res = await fetch('/api/scores');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      scoresData = data;
+      scoresLoaded = true;
+      renderScoresTable();
+    } catch (e) {
+      output.innerHTML = `<div class="state-box" style="color:var(--bad)">
+        <span class="icon">⚠</span><div class="state-title">Error</div>${e.message}
+        <br><br><button onclick="loadScores()">Try Again</button></div>`;
+    }
+  }
+
+  function getNestedVal(obj, key) {
+    // Supports dot notation e.g. 'safety.score'
+    return key.split('.').reduce((o, k) => o?.[k], obj) ?? -Infinity;
+  }
+
+  function renderScoresTable() {
+    const output = document.getElementById('scores-output');
+    const sorted = [...scoresData].sort((a, b) => {
+      return (getNestedVal(a, scoresSortKey) - getNestedVal(b, scoresSortKey)) * scoresSortDir;
+    });
+
+    const arrow = k => `<span class="sort-arrow">${scoresSortKey===k?(scoresSortDir===1?'↑':'↓'):'↕'}</span>`;
+
+    let html = `
+      <div class="results-header">
+        <div class="results-title">Ranked by Safety Score</div>
+        <button class="refresh-btn" onclick="loadScores()">↻ Refresh</button>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr>
+          <th>Rank</th>
+          <th>Ticker</th>
+          <th class="sortable ${scoresSortKey==='price'?'active':''}" onclick="setScoresSort('price')">Price ${arrow('price')}</th>
+          <th class="sortable ${scoresSortKey==='dividendYield'?'active':''}" onclick="setScoresSort('dividendYield')">Yield ${arrow('dividendYield')}</th>
+          <th class="sortable ${scoresSortKey==='safety.score'?'active':''}" onclick="setScoresSort('safety.score')">Safety Score ${arrow('safety.score')}</th>
+        </tr></thead><tbody>`;
+
+    sorted.forEach((s, i) => {
+      const originalRank = scoresData.findIndex(x => x.ticker === s.ticker) + 1;
+      const rankClass = originalRank === 1 ? 'gold' : originalRank === 2 ? 'silver' : originalRank === 3 ? 'bronze' : '';
+      const yld = s.dividendYield;
+      const hasDiv = yld != null && yld > 0;
+      html += `
+        <tr class="${s.safety.tierClass}" style="animation-delay:${i*0.06}s">
+          <td><span class="rank ${rankClass}">${originalRank}</span></td>
+          <td class="ticker-cell">${s.ticker}<div class="company-name">${s.companyName}</div></td>
+          <td class="num">$${fmt(s.price)}</td>
+          <td class="num">${hasDiv ? (yld*100).toFixed(2)+'%' : '—'}</td>
+          <td>${scoreBadge(s.safety)}</td>
+        </tr>`;
+    });
+    html += `</tbody></table></div>`;
+    output.innerHTML = html;
+  }
+
+  function setScoresSort(key) {
+    if (scoresSortKey === key) scoresSortDir *= -1;
+    else { scoresSortKey = key; scoresSortDir = -1; }
+    renderScoresTable();
+  }
+
+  // Enter key on search page
   document.addEventListener('keydown', e => {
     if (e.key === 'Enter' && document.getElementById('page-search').classList.contains('active')) {
       runScreener();

@@ -286,32 +286,21 @@
   .score-badge.moderate { background: rgba(250,204,21,0.15);  color: var(--moderate); border: 1px solid rgba(250,204,21,0.3); }
   .score-badge.risky    { background: rgba(248,113,113,0.15); color: var(--risky);    border: 1px solid rgba(248,113,113,0.3); }
 
-  /* ── Score breakdown tooltip (hover popup) ── */
-  .score-tooltip {
-    display: none;
-    position: absolute;
-    bottom: calc(100% + 10px);
-    left: 50%; transform: translateX(-50%);
-    width: 280px;
-    background: #1a1a28;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 16px;
-    z-index: 200;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-    text-align: left;
-    pointer-events: none;
-  }
-  .score-badge:hover .score-tooltip { display: block; }
-
-  /* Arrow pointing down from tooltip */
-  .score-tooltip::after {
-    content: '';
-    position: absolute;
-    top: 100%; left: 50%; transform: translateX(-50%);
-    border: 7px solid transparent;
-    border-top-color: var(--border);
-  }
+.score-tooltip {
+  position: fixed;
+  width: 280px;
+  background: #1a1a28;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  z-index: 9999;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+  text-align: left;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.score-tooltip.visible { opacity: 1; }
 
   .tooltip-title {
     font-family: 'DM Mono', monospace;
@@ -599,12 +588,16 @@
       </div>`;
   }
 
-  // ── Build a score badge with hover tooltip ──
   function scoreBadge(safety) {
+    // Store breakdown as JSON in a data attribute
+    // Tooltip is shown/hidden via JS mouseover so table overflow can't clip it
+    const dataAttr = encodeURIComponent(JSON.stringify(safety));
     return `
-      <span class="score-badge ${safety.tierClass}">
+      <span class="score-badge ${safety.tierClass}"
+        data-safety="${dataAttr}"
+        onmouseenter="showTooltip(event, this)"
+        onmouseleave="hideTooltip()">
         ${safety.score}/100 · ${safety.tier}
-        ${buildTooltip(safety)}
       </span>`;
   }
 
@@ -859,6 +852,76 @@
       runScreener();
     }
   });
+  // ── Fixed-position tooltip logic ──
+  // Creates one shared tooltip element and moves it with the mouse
+  // This avoids table overflow:hidden clipping the tooltip
+
+  const tooltipEl = document.createElement('div');
+  tooltipEl.className = 'score-tooltip';
+  document.body.appendChild(tooltipEl);
+
+  function showTooltip(event, badge) {
+    const safety = JSON.parse(decodeURIComponent(badge.dataset.safety));
+
+    function barColor(s, max) {
+      const ratio = s / max;
+      if (ratio >= 0.75) return '#4ade80';
+      if (ratio >= 0.4)  return '#facc15';
+      return '#f87171';
+    }
+
+    const factors = [
+      { label: 'Dividend Yield',    key: 'yield',  desc: 'Sweet spot is 3–8%. Very high yields can be a trap.' },
+      { label: 'Payout Ratio',      key: 'payout', desc: 'Under 60% healthy. REITs/Utilities allowed higher.' },
+      { label: 'Beta (Volatility)', key: 'beta',   desc: 'Lower = more stable. Under 0.8 is ideal for income.' },
+      { label: 'EPS (Profit)',      key: 'eps',    desc: 'Positive EPS means the company can sustain dividends.' },
+      { label: 'Sector',            key: 'sector', desc: 'Staples, utilities, and REITs are historically reliable.' },
+    ];
+
+    const rows = factors.map(f => {
+      const b = safety.breakdown[f.key];
+      const fillPct = Math.round((b.score / b.max) * 100);
+      const color = barColor(b.score, b.max);
+      return `
+        <div class="tooltip-row" title="${f.desc}">
+          <div class="tooltip-label">${f.label}</div>
+          <div class="tooltip-value">${b.value}</div>
+          <div class="tooltip-bar-wrap">
+            <div class="tooltip-bar-fill" style="width:${fillPct}%;background:${color}"></div>
+          </div>
+        </div>`;
+    }).join('');
+
+    tooltipEl.innerHTML = `
+      <div class="tooltip-title">Safety Score Breakdown</div>
+      ${rows}
+      <div class="tooltip-total">
+        <div class="tooltip-total-label">Total Score</div>
+        <div class="tooltip-total-score">${safety.score}/100</div>
+      </div>`;
+
+    positionTooltip(event);
+    tooltipEl.classList.add('visible');
+  }
+
+  function positionTooltip(event) {
+    const margin = 12;
+    const tw = 280, th = 220; // approx tooltip size
+    let x = event.clientX - tw / 2;
+    let y = event.clientY - th - margin;
+
+    // Keep within viewport
+    if (x < margin) x = margin;
+    if (x + tw > window.innerWidth - margin) x = window.innerWidth - tw - margin;
+    if (y < margin) y = event.clientY + margin; // flip below if too close to top
+
+    tooltipEl.style.left = x + 'px';
+    tooltipEl.style.top  = y + 'px';
+  }
+
+  function hideTooltip() {
+    tooltipEl.classList.remove('visible');
+  }
 </script>
 </body>
 </html>

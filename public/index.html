@@ -384,9 +384,9 @@
       <h2 class="page-title">Stock <span>Search</span></h2>
       <p class="page-subtitle">Enter one or more tickers to see their dividend yield and rating.</p>
       <div class="thresholds">
-        <div class="threshold-chip"><div class="dot" style="background:var(--excellent)"></div> Excellent &gt; 6%</div>
-        <div class="threshold-chip"><div class="dot" style="background:var(--good)"></div> Good 4–6%</div>
-        <div class="threshold-chip"><div class="dot" style="background:var(--bad)"></div> Below avg &lt; 4%</div>
+        <div class="threshold-chip"><div class="dot" style="background:var(--excellent)"></div> Excellent &gt; 5%</div>
+        <div class="threshold-chip"><div class="dot" style="background:var(--good)"></div> Good 3–5%</div>
+        <div class="threshold-chip"><div class="dot" style="background:var(--bad)"></div> Below avg &lt; 3%</div>
       </div>
     </div>
     <div class="search-section">
@@ -429,8 +429,8 @@
     if (name === 'top10' && !top10Loaded) loadTop10();
   }
 
-  const EXCELLENT = 0.06;
-  const GOOD = 0.04;
+  const EXCELLENT = 0.05;
+  const GOOD = 0.03;
 
   function getRating(y) {
     if (y >= EXCELLENT) return 'excellent';

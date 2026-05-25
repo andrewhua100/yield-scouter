@@ -145,6 +145,79 @@
   .feature-title { font-size: 14px; font-weight: 500; margin-bottom: 6px; }
   .feature-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
 
+  .learn-more-btn {
+    background: transparent; color: var(--accent);
+    border: 1px solid rgba(200,169,110,0.3); border-radius: 6px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 7px 14px; cursor: pointer; transition: all 0.2s;
+  }
+  .learn-more-btn:hover { background: rgba(200,169,110,0.1); border-color: var(--accent); transform: none; }
+
+  /* ── Safety Guide page ── */
+  .guide-section {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 32px; margin-bottom: 16px;
+    animation: fadeUp 0.5s ease both;
+  }
+  .guide-section:hover { border-color: #2e2e44; }
+  .guide-header {
+    display: flex; align-items: center; gap: 14px; margin-bottom: 16px;
+  }
+  .guide-icon { font-size: 28px; flex-shrink: 0; }
+  .guide-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px; font-weight: 700; color: var(--text);
+  }
+  .guide-subtitle {
+    font-size: 13px; color: var(--muted); margin-top: 2px;
+  }
+  .guide-body { font-size: 14px; color: var(--muted); line-height: 1.75; margin-bottom: 20px; }
+  .guide-body strong { color: var(--text); font-weight: 500; }
+  .guide-table {
+    width: 100%; border-collapse: collapse; font-size: 13px;
+  }
+  .guide-table th {
+    font-family: 'DM Mono', monospace; font-size: 10px;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--muted); text-align: left;
+    padding: 8px 14px; border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,0.02);
+  }
+  .guide-table td {
+    padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.04);
+    color: var(--text); font-family: 'DM Mono', monospace; font-size: 12px;
+  }
+  .guide-table tr:last-child td { border-bottom: none; }
+  .guide-table td:first-child { color: var(--muted); }
+  .pts-pill {
+    display: inline-block; padding: 2px 10px; border-radius: 100px;
+    font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500;
+  }
+  .pts-full   { background: rgba(74,222,128,0.15);  color: #4ade80; border: 1px solid rgba(74,222,128,0.25); }
+  .pts-mid    { background: rgba(250,204,21,0.15);  color: #facc15; border: 1px solid rgba(250,204,21,0.25); }
+  .pts-low    { background: rgba(248,113,113,0.15); color: #f87171; border: 1px solid rgba(248,113,113,0.25); }
+  .pts-none   { background: rgba(100,100,120,0.15); color: var(--muted); border: 1px solid rgba(100,100,120,0.2); }
+  .tier-summary {
+    display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap;
+  }
+  .tier-card {
+    flex: 1; min-width: 160px; border-radius: 10px; padding: 16px 20px;
+    border: 1px solid;
+  }
+  .tier-card.safe     { background: rgba(74,222,128,0.07);  border-color: rgba(74,222,128,0.2); }
+  .tier-card.moderate { background: rgba(250,204,21,0.07);  border-color: rgba(250,204,21,0.2); }
+  .tier-card.risky    { background: rgba(248,113,113,0.07); border-color: rgba(248,113,113,0.2); }
+  .tier-label {
+    font-family: 'DM Mono', monospace; font-size: 10px;
+    letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px;
+  }
+  .tier-card.safe     .tier-label { color: #4ade80; }
+  .tier-card.moderate .tier-label { color: #facc15; }
+  .tier-card.risky    .tier-label { color: #f87171; }
+  .tier-range { font-size: 20px; font-weight: 700; color: var(--text); }
+  .tier-desc  { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+
   .page-header { margin-bottom: 32px; animation: fadeUp 0.5s ease both; }
   .page-title {
     font-family: 'Playfair Display', serif;
@@ -418,6 +491,9 @@
       <div class="feature-icon">🛡️</div>
       <div class="feature-title">Safety Score</div>
       <div class="feature-desc">A 0–100 score combining yield, payout ratio, volatility, profitability, and sector reliability.</div>
+      <div style="margin-top:14px">
+        <button class="learn-more-btn" onclick="showPage('safety-guide')">Learn more →</button>
+      </div>
     </div>
     <div class="feature-card">
       <div class="feature-icon">🏆</div>
@@ -497,6 +573,174 @@
   </div>
 </div>
 
+<!-- SAFETY GUIDE -->
+<div id="page-safety-guide" class="page">
+  <div class="wrapper">
+    <div class="page-header">
+      <h2 class="page-title">Safety <span>Score Guide</span></h2>
+      <p class="page-subtitle">How Yield Scout calculates the 0–100 dividend safety score — and what each factor means for your investment.</p>
+    </div>
+
+    <!-- Overview -->
+    <div class="guide-section">
+      <div class="guide-header">
+        <div class="guide-icon">🧮</div>
+        <div>
+          <div class="guide-title">How it works</div>
+          <div class="guide-subtitle">Five factors, each worth a maximum number of points, totalling 100.</div>
+        </div>
+      </div>
+      <div class="guide-body">
+        Every stock is scored across five independent factors. The points are added together to produce a final score between 0 and 100. <strong>Missing data is never penalised to zero</strong> — unknown fields receive partial credit so a single data gap doesn't unfairly sink an otherwise strong stock.
+      </div>
+      <div class="tier-summary">
+        <div class="tier-card safe">
+          <div class="tier-label">Safe</div>
+          <div class="tier-range">70 – 100</div>
+          <div class="tier-desc">Strong fundamentals across most factors. Dividend is well-supported.</div>
+        </div>
+        <div class="tier-card moderate">
+          <div class="tier-label">Moderate</div>
+          <div class="tier-range">40 – 69</div>
+          <div class="tier-desc">Decent yield but one or more factors show elevated risk.</div>
+        </div>
+        <div class="tier-card risky">
+          <div class="tier-label">Risky</div>
+          <div class="tier-range">0 – 39</div>
+          <div class="tier-desc">Multiple warning signs. Dividend cut is possible.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Factor 1: Yield -->
+    <div class="guide-section" style="animation-delay:0.05s">
+      <div class="guide-header">
+        <div class="guide-icon">📈</div>
+        <div>
+          <div class="guide-title">1. Dividend Yield</div>
+          <div class="guide-subtitle">Worth up to 25 points</div>
+        </div>
+      </div>
+      <div class="guide-body">
+        Dividend yield is the annual dividend divided by the stock price. A yield that is too low offers little income value; a yield that is too high often signals the market expects a dividend cut — so the ideal range is <strong>3% to 8%</strong>.
+      </div>
+      <table class="guide-table">
+        <thead><tr><th>Yield Range</th><th>Points</th><th>Reasoning</th></tr></thead>
+        <tbody>
+          <tr><td>3% – 8%</td><td><span class="pts-pill pts-full">25 pts</span></td><td>Sweet spot — strong income, sustainable payout</td></tr>
+          <tr><td>8% – 12%</td><td><span class="pts-pill pts-mid">15 pts</span></td><td>Elevated — possible risk, worth investigating</td></tr>
+          <tr><td>&gt; 12%</td><td><span class="pts-pill pts-low">5 pts</span></td><td>Danger zone — market may be pricing in a cut</td></tr>
+          <tr><td>1% – 3%</td><td><span class="pts-pill pts-low">10 pts</span></td><td>Low income value but lower risk of cuts</td></tr>
+          <tr><td>&lt; 1%</td><td><span class="pts-pill pts-none">0 pts</span></td><td>Negligible income — not a dividend stock</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Factor 2: Payout Ratio -->
+    <div class="guide-section" style="animation-delay:0.1s">
+      <div class="guide-header">
+        <div class="guide-icon">💸</div>
+        <div>
+          <div class="guide-title">2. Payout Ratio</div>
+          <div class="guide-subtitle">Worth up to 25 points</div>
+        </div>
+      </div>
+      <div class="guide-body">
+        The payout ratio is the percentage of earnings paid out as dividends. A company paying out more than it earns cannot sustain the dividend long-term. <strong>REITs and Utilities</strong> are granted relaxed thresholds because they are legally required (REITs) or structurally expected to distribute most of their income.
+      </div>
+      <table class="guide-table">
+        <thead><tr><th>Payout Ratio</th><th>Points</th><th>Applies to</th></tr></thead>
+        <tbody>
+          <tr><td>≤ 60%</td><td><span class="pts-pill pts-full">25 pts</span></td><td>All sectors (normal)</td></tr>
+          <tr><td>61% – 80%</td><td><span class="pts-pill pts-mid">15 pts</span></td><td>All sectors (normal)</td></tr>
+          <tr><td>81% – 100%</td><td><span class="pts-pill pts-low">5 pts</span></td><td>All sectors (normal)</td></tr>
+          <tr><td>&gt; 100%</td><td><span class="pts-pill pts-none">0 pts</span></td><td>All sectors — paying more than earned</td></tr>
+          <tr><td>≤ 95%</td><td><span class="pts-pill pts-full">25 pts</span></td><td>REITs &amp; Utilities only</td></tr>
+          <tr><td>96% – 110%</td><td><span class="pts-pill pts-mid">15 pts</span></td><td>REITs &amp; Utilities only</td></tr>
+          <tr><td>&gt; 110%</td><td><span class="pts-pill pts-low">5 pts</span></td><td>REITs &amp; Utilities only</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Factor 3: Beta -->
+    <div class="guide-section" style="animation-delay:0.15s">
+      <div class="guide-header">
+        <div class="guide-icon">📉</div>
+        <div>
+          <div class="guide-title">3. Beta (Volatility)</div>
+          <div class="guide-subtitle">Worth up to 20 points</div>
+        </div>
+      </div>
+      <div class="guide-body">
+        Beta measures how much a stock moves relative to the market. A beta of <strong>1.0</strong> means it moves in lockstep with the S&P 500. Lower beta means a steadier, more predictable stock — important for income investors who can't afford large drawdowns. Stocks with unknown beta receive 10 points (neutral credit).
+      </div>
+      <table class="guide-table">
+        <thead><tr><th>Beta</th><th>Points</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td>≤ 0.5</td><td><span class="pts-pill pts-full">20 pts</span></td><td>Very stable — moves much less than the market</td></tr>
+          <tr><td>0.51 – 0.8</td><td><span class="pts-pill pts-full">17 pts</span></td><td>Stable — typical defensive stock</td></tr>
+          <tr><td>0.81 – 1.0</td><td><span class="pts-pill pts-mid">13 pts</span></td><td>Market-like — moderate volatility</td></tr>
+          <tr><td>1.01 – 1.3</td><td><span class="pts-pill pts-mid">8 pts</span></td><td>Above average — moves more than the market</td></tr>
+          <tr><td>1.31 – 1.6</td><td><span class="pts-pill pts-low">4 pts</span></td><td>High volatility — significant swings</td></tr>
+          <tr><td>&gt; 1.6</td><td><span class="pts-pill pts-none">0 pts</span></td><td>Very high — not typical for income stocks</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Factor 4: EPS -->
+    <div class="guide-section" style="animation-delay:0.2s">
+      <div class="guide-header">
+        <div class="guide-icon">💰</div>
+        <div>
+          <div class="guide-title">4. EPS (Earnings Per Share)</div>
+          <div class="guide-subtitle">Worth up to 15 points</div>
+        </div>
+      </div>
+      <div class="guide-body">
+        EPS is the company's net profit divided by shares outstanding — a direct measure of profitability. A company must be <strong>earning money</strong> to sustain a dividend over the long run. We use trailing twelve-month (TTM) EPS so it reflects actual recent results, not forecasts. Unknown EPS receives 5 points rather than zero.
+      </div>
+      <table class="guide-table">
+        <thead><tr><th>EPS (TTM)</th><th>Points</th><th>Signal</th></tr></thead>
+        <tbody>
+          <tr><td>&gt; $5.00</td><td><span class="pts-pill pts-full">15 pts</span></td><td>Highly profitable — strong dividend coverage</td></tr>
+          <tr><td>$2.00 – $5.00</td><td><span class="pts-pill pts-mid">12 pts</span></td><td>Solidly profitable</td></tr>
+          <tr><td>$0 – $2.00</td><td><span class="pts-pill pts-low">8 pts</span></td><td>Profitable but thin margins</td></tr>
+          <tr><td>Negative</td><td><span class="pts-pill pts-none">0 pts</span></td><td>Losing money — dividend is at risk</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Factor 5: Sector -->
+    <div class="guide-section" style="animation-delay:0.25s">
+      <div class="guide-header">
+        <div class="guide-icon">🏭</div>
+        <div>
+          <div class="guide-title">5. Sector Reliability Bonus</div>
+          <div class="guide-subtitle">Worth up to 15 points</div>
+        </div>
+      </div>
+      <div class="guide-body">
+        Some sectors have structural advantages that make dividends more reliable — recession-proof demand, regulated monopolies, or legal distribution requirements. This bonus rewards stocks in historically dependable sectors. It is a <strong>blunt signal</strong>, not a guarantee: a tech company with a great track record can still score well on the other four factors.
+      </div>
+      <table class="guide-table">
+        <thead><tr><th>Sector</th><th>Points</th><th>Why it's reliable</th></tr></thead>
+        <tbody>
+          <tr><td>Consumer Staples</td><td><span class="pts-pill pts-full">15 pts</span></td><td>Recession-proof demand (food, soap, toothpaste)</td></tr>
+          <tr><td>Utilities</td><td><span class="pts-pill pts-full">15 pts</span></td><td>Regulated monopolies with predictable revenue</td></tr>
+          <tr><td>Real Estate / REITs</td><td><span class="pts-pill pts-full">15 pts</span></td><td>Legally required to distribute 90%+ of income</td></tr>
+          <tr><td>Energy</td><td><span class="pts-pill pts-full">15 pts</span></td><td>Large cash-generating businesses, long histories</td></tr>
+          <tr><td>Healthcare</td><td><span class="pts-pill pts-full">15 pts</span></td><td>Defensive, demand persists in all economic cycles</td></tr>
+          <tr><td>Financials</td><td><span class="pts-pill pts-full">15 pts</span></td><td>Established institutions, long dividend track records</td></tr>
+          <tr><td>Communication Services</td><td><span class="pts-pill pts-full">15 pts</span></td><td>Steady subscription and infrastructure revenue</td></tr>
+          <tr><td>Other known sector</td><td><span class="pts-pill pts-mid">8 pts</span></td><td>No structural advantage, but established industry</td></tr>
+          <tr><td>Unknown</td><td><span class="pts-pill pts-low">5 pts</span></td><td>Partial credit — no data penalty</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
 <script>
   // ── Navigation ──
   let top50Loaded = false;
@@ -506,8 +750,8 @@
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
     document.getElementById('page-' + name).classList.add('active');
-    const idx = { home: 0, search: 1, top50: 2, scores: 3 }[name];
-    document.querySelectorAll('.nav-tab')[idx].classList.add('active');
+    const idx = { home: 0, search: 1, top50: 2, scores: 3, 'safety-guide': -1 }[name];
+    if (idx >= 0) document.querySelectorAll('.nav-tab')[idx].classList.add('active');
     if (name === 'top50' && !top50Loaded) loadTop50();
     if (name === 'scores' && !scoresLoaded) loadScores();
   }

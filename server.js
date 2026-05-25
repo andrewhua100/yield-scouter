@@ -21,27 +21,24 @@ app.use(express.static(path.join(__dirname, 'public')));
 const CACHE_TTL_SECONDS = 24 * 60 * 60; // 24 hours
 
 // ── Redis Cache (Upstash REST API) ──
-// Uses the correct Upstash REST format: POST /pipeline with JSON command arrays
-async function redisPipeline(commands) {
-  const token = (REDIS_TOKEN || '').trim();
-  const res = await fetch(`${REDIS_URL.trim()}/pipeline`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(commands)
-  });
-  return res.json();
+// Direct REST calls: POST /set and GET /get/:key
+function redisHeaders() {
+  return {
+    'Authorization': 'Bearer ' + (REDIS_TOKEN || '').trim(),
+    'Content-Type': 'application/json'
+  };
 }
 
 async function redisSet(key, value) {
   try {
-    const serialized = JSON.stringify(value);
-    const data = await redisPipeline([
-      ['SET', key, serialized, 'EX', CACHE_TTL_SECONDS]
-    ]);
-    console.log(`[redis] SET ${key}:`, data?.[0]?.result);
+    const base = (REDIS_URL || '').trim().replace(/\/$/, '');
+    const res = await fetch(base + '/set', {
+      method: 'POST',
+      headers: redisHeaders(),
+      body: JSON.stringify([key, JSON.stringify(value), 'EX', CACHE_TTL_SECONDS])
+    });
+    const data = await res.json();
+    console.log(`[redis] SET ${key}:`, data.result, data.error || '');
   } catch (err) {
     console.error(`[redis] SET error for ${key}:`, err.message);
   }
@@ -49,13 +46,15 @@ async function redisSet(key, value) {
 
 async function redisGet(key) {
   try {
-    const data = await redisPipeline([
-      ['GET', key]
-    ]);
-    const result = data?.[0]?.result;
-    if (result == null) { console.log(`[redis] MISS ${key}`); return null; }
+    const base = (REDIS_URL || '').trim().replace(/\/$/, '');
+    const res = await fetch(base + '/get/' + encodeURIComponent(key), {
+      method: 'GET',
+      headers: redisHeaders()
+    });
+    const data = await res.json();
+    if (data.result == null) { console.log(`[redis] MISS ${key}`); return null; }
     console.log(`[redis] HIT ${key}`);
-    return JSON.parse(result);
+    return JSON.parse(data.result);
   } catch (err) {
     console.error(`[redis] GET error for ${key}:`, err.message);
     return null;

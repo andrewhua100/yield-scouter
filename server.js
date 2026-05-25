@@ -33,15 +33,16 @@ function redisHeaders() {
 async function redisSet(key, value) {
   try {
     const base = (REDIS_URL || '').trim().replace(/\/$/, '');
-    const encodedKey = encodeURIComponent(key);
-    const encodedVal = encodeURIComponent(JSON.stringify(value));
-    const url = `${base}/set/${encodedKey}/${encodedVal}?EX=${CACHE_TTL_SECONDS}`;
-    const res = await fetch(url, {
-      method: 'GET',
-      headers: redisHeaders()
+    // Upstash REST: POST /set with JSON array body ["key","value","EX",ttl]
+    const res = await fetch(base + '/set', {
+      method: 'POST',
+      headers: redisHeaders(),
+      body: JSON.stringify([key, JSON.stringify(value), 'EX', String(CACHE_TTL_SECONDS)])
     });
-    const data = await res.json();
-    console.log(`[redis] SET ${key}:`, data.result, data.error || '');
+    const text = await res.text();
+    console.log(`[redis] SET ${key} raw:`, text.slice(0, 80));
+    const data = JSON.parse(text);
+    if (data.error) console.error(`[redis] SET ${key} error:`, data.error);
   } catch (err) {
     console.error(`[redis] SET error for ${key}:`, err.message);
   }
@@ -328,7 +329,7 @@ app.get('/api/stock/:ticker', async (req, res) => {
 // ── Top 50 endpoint ──
 app.get('/api/top10', async (req, res) => {
   const cachedTop50 = await cacheGet('__top50__');
-  if (cachedTop50) return res.json(cachedTop50);
+  if (cachedTop50 && cachedTop50.length > 0) return res.json(cachedTop50);
 
   try {
     const results = await fetchInBatches(DIVIDEND_ARISTOCRATS);
@@ -352,7 +353,7 @@ app.get('/api/top10', async (req, res) => {
 // ── Scores endpoint ──
 app.get('/api/scores', async (req, res) => {
   const cachedScores = await cacheGet('__scores__');
-  if (cachedScores) return res.json(cachedScores);
+  if (cachedScores && cachedScores.length > 0) return res.json(cachedScores);
 
   try {
     const results = await fetchInBatches(DIVIDEND_ARISTOCRATS);

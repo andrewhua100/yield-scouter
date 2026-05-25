@@ -16,11 +16,58 @@ if (!API_KEY) {
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Sectors where high payout ratios are normal and expected
+// ── In-Memory Cache ──
+const cache = new Map();
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+function cacheSet(key, data) {
+  cache.set(key, { data, expiresAt: Date.now() + CACHE_TTL_MS });
+  console.log(`[cache] SET ${key} — expires in 24hrs. Cache size: ${cache.size}`);
+}
+
+function cacheGet(key) {
+  const entry = cache.get(key);
+  if (!entry) return null;
+  if (Date.now() > entry.expiresAt) {
+    cache.delete(key);
+    console.log(`[cache] EXPIRED ${key}`);
+    return null;
+  }
+  console.log(`[cache] HIT ${key}`);
+  return entry.data;
+}
+
+// ── Dividend Aristocrats ──
+// S&P 500 companies with 25+ consecutive years of dividend increases
+// This is the gold standard list for dividend investing
+// Capped at 60 to stay within 250 API calls/day (60 x 4 = 240 calls)
+const DIVIDEND_ARISTOCRATS = [
+  // Consumer Staples
+  'KO', 'PEP', 'PG', 'CL', 'KMB', 'MKC', 'SYY', 'GPC', 'CLX', 'HRL',
+  // Healthcare
+  'JNJ', 'ABT', 'ABBV', 'BDX', 'MDT', 'WST', 'CAH', 'AFL',
+  // Financials
+  'AOS', 'BRO', 'CB', 'FRT', 'CINF', 'MMC', 'SHW', 'T', 'VZ',
+  // Industrials
+  'EMR', 'ITW', 'CAT', 'GWW', 'DOV', 'PH', 'SWK', 'TGT', 'SPGI', 'ECL',
+  // Energy
+  'XOM', 'CVX', 'ET', 'MO',
+  // Real Estate / Utilities
+  'O', 'D', 'ED', 'WEC', 'ES', 'ATO',
+  // Technology
+  'IBM', 'TXN', 'AVGO',
+  // Materials
+  'APD', 'PPG', 'NUE', 'ALB',
+  // Communication
+  'VFC', 'LOW', 'EXPD',
+  // Mixed / Other Aristocrats
+  'ADP', 'BEN', 'CTAS', 'EFX', 'FAST', 'LDOS', 'LECO', 'NDSN', 'ROP', 'TROW'
+];
+
+// ── Sectors where high payout ratios are normal ──
 const HIGH_PAYOUT_SECTORS = ['reit', 'real estate', 'utilities', 'utility'];
 
 // ── Calculate Dividend Safety Score (0–100) ──
-// Weighted algorithm combining yield, payout ratio, beta, eps, and sector
 function calcSafetyScore(data) {
   const { dividendYield, payoutRatio, beta, eps, sector } = data;
   let score = 0;
@@ -30,28 +77,24 @@ function calcSafetyScore(data) {
     (sector || '').toLowerCase().includes(s)
   );
 
-  // ── 1. Dividend Yield (25 points) ──
-  // Sweet spot is 3–8%. Too low = not worth it. Too high = could be a trap.
+  // 1. Dividend Yield (25 points)
   let yieldScore = 0;
   const yieldPct = (dividendYield || 0) * 100;
   if (yieldPct >= 3 && yieldPct <= 8) yieldScore = 25;
-  else if (yieldPct > 8 && yieldPct <= 12) yieldScore = 15; // high but risky
-  else if (yieldPct > 12) yieldScore = 5;                   // likely a yield trap
-  else if (yieldPct >= 1) yieldScore = 10;                  // low yield
-  else yieldScore = 0;                                       // no dividend
+  else if (yieldPct > 8 && yieldPct <= 12) yieldScore = 15;
+  else if (yieldPct > 12) yieldScore = 5;
+  else if (yieldPct >= 1) yieldScore = 10;
+  else yieldScore = 0;
   breakdown.yield = { score: yieldScore, max: 25, value: yieldPct.toFixed(2) + '%' };
   score += yieldScore;
 
-  // ── 2. Earnings Payout Ratio (25 points) ──
-  // What % of earnings are paid as dividends.
-  // REITs/Utilities are allowed higher ratios by law.
+  // 2. Payout Ratio (25 points)
   let payoutScore = 0;
   if (payoutRatio == null) {
-    payoutScore = 10; // unknown — give neutral score
+    payoutScore = 10;
   } else {
     const pct = payoutRatio > 1 ? payoutRatio : payoutRatio * 100;
     if (isHighPayoutSector) {
-      // For REITs/Utilities, up to 95% is fine
       if (pct <= 95) payoutScore = 25;
       else if (pct <= 110) payoutScore = 15;
       else payoutScore = 5;
@@ -59,39 +102,38 @@ function calcSafetyScore(data) {
       if (pct <= 60) payoutScore = 25;
       else if (pct <= 80) payoutScore = 15;
       else if (pct <= 100) payoutScore = 5;
-      else payoutScore = 0; // paying more than it earns
+      else payoutScore = 0;
     }
   }
-  breakdown.payout = { score: payoutScore, max: 25, value: payoutRatio != null ? (payoutRatio > 1 ? payoutRatio : payoutRatio * 100).toFixed(1) + '%' : 'N/A' };
+  breakdown.payout = {
+    score: payoutScore, max: 25,
+    value: payoutRatio != null ? (payoutRatio > 1 ? payoutRatio : payoutRatio * 100).toFixed(1) + '%' : 'N/A'
+  };
   score += payoutScore;
 
-  // ── 3. Beta / Volatility (20 points) ──
-  // Lower beta = more stable = better for income investors
+  // 3. Beta / Volatility (20 points)
   let betaScore = 0;
-  if (beta == null) {
-    betaScore = 10; // unknown — neutral
-  } else if (beta <= 0.5) betaScore = 20; // very stable
+  if (beta == null) betaScore = 10;
+  else if (beta <= 0.5) betaScore = 20;
   else if (beta <= 0.8) betaScore = 17;
   else if (beta <= 1.0) betaScore = 13;
   else if (beta <= 1.3) betaScore = 8;
   else if (beta <= 1.6) betaScore = 4;
-  else betaScore = 0; // very volatile
+  else betaScore = 0;
   breakdown.beta = { score: betaScore, max: 20, value: beta != null ? beta.toFixed(2) : 'N/A' };
   score += betaScore;
 
-  // ── 4. EPS / Profitability (15 points) ──
-  // Positive EPS means the company is profitable and can sustain dividends
+  // 4. EPS / Profitability (15 points)
   let epsScore = 0;
   if (eps == null) epsScore = 5;
   else if (eps > 5) epsScore = 15;
   else if (eps > 2) epsScore = 12;
   else if (eps > 0) epsScore = 8;
-  else epsScore = 0; // losing money
+  else epsScore = 0;
   breakdown.eps = { score: epsScore, max: 15, value: eps != null ? '$' + eps.toFixed(2) : 'N/A' };
   score += epsScore;
 
-  // ── 5. Sector Bonus (15 points) ──
-  // Reward sectors historically known for reliable dividends
+  // 5. Sector Bonus (15 points)
   const RELIABLE_SECTORS = [
     'consumer staples', 'utilities', 'real estate', 'reit',
     'energy', 'healthcare', 'financials', 'communication services'
@@ -99,12 +141,11 @@ function calcSafetyScore(data) {
   const sectorLower = (sector || '').toLowerCase();
   let sectorScore = 0;
   if (RELIABLE_SECTORS.some(s => sectorLower.includes(s))) sectorScore = 15;
-  else if (sectorLower) sectorScore = 8; // known sector, just not top-tier for dividends
-  else sectorScore = 5; // unknown sector
+  else if (sectorLower) sectorScore = 8;
+  else sectorScore = 5;
   breakdown.sector = { score: sectorScore, max: 15, value: sector || 'Unknown' };
   score += sectorScore;
 
-  // Determine tier based on total score
   let tier, tierClass;
   if (score >= 70) { tier = 'Safe'; tierClass = 'safe'; }
   else if (score >= 40) { tier = 'Moderate'; tierClass = 'moderate'; }
@@ -113,7 +154,14 @@ function calcSafetyScore(data) {
   return { score: Math.round(score), tier, tierClass, breakdown };
 }
 
+// ── Fetch all data for one ticker ──
+// Checks cache first — only calls FMP if data is missing or expired
 async function fetchTickerData(ticker) {
+  const cached = cacheGet(ticker);
+  if (cached) return cached;
+
+  console.log(`[fetch] Calling FMP for ${ticker}`);
+
   const [quoteRes, divRes, profileRes, metricsRes] = await Promise.all([
     fetch(`https://financialmodelingprep.com/stable/quote?symbol=${ticker}&apikey=${API_KEY}`),
     fetch(`https://financialmodelingprep.com/stable/dividends?symbol=${ticker}&apikey=${API_KEY}`),
@@ -127,8 +175,6 @@ async function fetchTickerData(ticker) {
     profileRes.json(),
     metricsRes.json()
   ]);
-
-  console.log(`[${ticker}] metrics:`, JSON.stringify(metricsData).slice(0, 300));
 
   if (!quoteData || quoteData.length === 0) {
     throw new Error(`Ticker "${ticker}" not found.`);
@@ -147,13 +193,9 @@ async function fetchTickerData(ticker) {
 
   const beta = profile.beta ?? quote.beta ?? null;
 
-  // Derive EPS from earningsYieldTTM (earningsYield = EPS / Price)
-  // so EPS = earningsYield * price
   const earningsYield = metrics.earningsYieldTTM ?? null;
   const eps = earningsYield != null && price ? earningsYield * price : (quote.eps ?? null);
 
-  // Calculate payout ratio = annual dividend / EPS
-  // e.g. KO pays $2.12/year, EPS = $2.80 → payout ratio = 75.7%
   let payoutRatio = null;
   if (annualDividend != null && eps != null && eps > 0) {
     payoutRatio = annualDividend / eps;
@@ -163,13 +205,24 @@ async function fetchTickerData(ticker) {
 
   const sector = profile.sector || null;
 
-  console.log(`[${ticker}] beta: ${beta} | earningsYield: ${earningsYield} | eps: ${eps} | payoutRatio: ${payoutRatio}`);
-
-  return {
+  const result = {
     ticker, companyName, price, annualDividend, dividendYield,
     payoutRatio, beta, eps, sector
   };
+
+  cacheSet(ticker, result);
+  return result;
 }
+
+// ── Cache status endpoint ──
+app.get('/api/cache-status', (req, res) => {
+  const entries = [];
+  for (const [key, entry] of cache.entries()) {
+    const minutesLeft = Math.round((entry.expiresAt - Date.now()) / 60000);
+    entries.push({ ticker: key, expiresInMinutes: minutesLeft });
+  }
+  res.json({ totalCached: cache.size, apiCallsSaved: cache.size * 4, entries });
+});
 
 // ── Search endpoint ──
 app.get('/api/stock/:ticker', async (req, res) => {
@@ -191,17 +244,19 @@ app.get('/api/stock/:ticker', async (req, res) => {
 });
 
 // ── Top 10 endpoint ──
+// Fetches all 60 Dividend Aristocrats, ranks by yield, returns top 10
+// First load uses up to 240 API calls, then cached for 24hrs
 app.get('/api/top10', async (req, res) => {
   if (!API_KEY) return res.status(500).json({ error: 'API key not configured.' });
 
-  const WATCHLIST = [
-    'MO', 'T', 'VZ', 'KO', 'PEP', 'JNJ', 'PFE', 'ABBV',
-    'XOM', 'CVX', 'O', 'D', 'IBM', 'ET', 'CAG'
-  ];
+  // Check if we have a cached top10 result list
+  const cachedTop10 = cacheGet('__top10__');
+  if (cachedTop10) return res.json(cachedTop10);
 
   try {
+    // Fetch all aristocrats in parallel — cache means repeat calls are free
     const results = await Promise.allSettled(
-      WATCHLIST.map(ticker => fetchTickerData(ticker))
+      DIVIDEND_ARISTOCRATS.map(ticker => fetchTickerData(ticker))
     );
 
     const valid = results
@@ -212,6 +267,9 @@ app.get('/api/top10', async (req, res) => {
       .sort((a, b) => b.dividendYield - a.dividendYield)
       .slice(0, 10);
 
+    // Cache the final top10 list separately so we don't re-sort every time
+    cacheSet('__top10__', top10);
+
     res.json(top10);
   } catch (err) {
     console.error('Error fetching top 10:', err.message);
@@ -220,18 +278,17 @@ app.get('/api/top10', async (req, res) => {
 });
 
 // ── Scores endpoint ──
-// Ranks the watchlist by Safety Score rather than raw yield
+// Fetches all 60 Dividend Aristocrats, ranks by Safety Score
 app.get('/api/scores', async (req, res) => {
   if (!API_KEY) return res.status(500).json({ error: 'API key not configured.' });
 
-  const WATCHLIST = [
-    'MO', 'T', 'VZ', 'KO', 'PEP', 'JNJ', 'PFE', 'ABBV',
-    'XOM', 'CVX', 'O', 'D', 'IBM', 'ET', 'CAG'
-  ];
+  // Check if we have a cached scores result list
+  const cachedScores = cacheGet('__scores__');
+  if (cachedScores) return res.json(cachedScores);
 
   try {
     const results = await Promise.allSettled(
-      WATCHLIST.map(ticker => fetchTickerData(ticker))
+      DIVIDEND_ARISTOCRATS.map(ticker => fetchTickerData(ticker))
     );
 
     const scored = results
@@ -243,21 +300,14 @@ app.get('/api/scores', async (req, res) => {
       })
       .sort((a, b) => b.safety.score - a.safety.score);
 
+    // Cache the final scores list
+    cacheSet('__scores__', scored);
+
     res.json(scored);
   } catch (err) {
     console.error('Error fetching scores:', err.message);
     res.status(500).json({ error: 'Failed to fetch scores.' });
   }
-});
-
-// ── TEMP: Test FMP screener endpoint ──
-app.get('/api/test-screener', async (req, res) => {
-  const url = `https://financialmodelingprep.com/stable/company-screener?dividendMoreThan=2&betaLowerThan=2&country=US&exchange=NYSE,NASDAQ&limit=20&apikey=${API_KEY}`;
-  console.log('Testing screener URL:', url);
-  const response = await fetch(url);
-  const data = await response.json();
-  console.log('Screener result:', JSON.stringify(data).slice(0, 500));
-  res.json(data);
 });
 
 app.listen(PORT, () => {

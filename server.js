@@ -249,9 +249,9 @@ app.get('/api/stock/:ticker', async (req, res) => {
 app.get('/api/top10', async (req, res) => {
   if (!API_KEY) return res.status(500).json({ error: 'API key not configured.' });
 
-  // Check if we have a cached top10 result list
-  const cachedTop10 = cacheGet('__top10__');
-  if (cachedTop10) return res.json(cachedTop10);
+  // Check if we have a cached top50 result list
+const cachedTop50 = cacheGet('__top50__');
+if (cachedTop50) return res.json(cachedTop50);
 
   try {
     // Fetch all aristocrats in parallel — cache means repeat calls are free
@@ -263,14 +263,13 @@ app.get('/api/top10', async (req, res) => {
       .filter(r => r.status === 'fulfilled' && r.value.dividendYield > 0)
       .map(r => r.value);
 
-    const top10 = valid
+    const top50 = valid
       .sort((a, b) => b.dividendYield - a.dividendYield)
-      .slice(0, 10);
+      .slice(0, 50);
 
-    // Cache the final top10 list separately so we don't re-sort every time
-    cacheSet('__top10__', top10);
+    cacheSet('__top50__', top50);
 
-    res.json(top10);
+    res.json(top50);
   } catch (err) {
     console.error('Error fetching top 10:', err.message);
     res.status(500).json({ error: 'Failed to fetch top 10.' });

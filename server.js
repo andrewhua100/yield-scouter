@@ -2,12 +2,7 @@ import express from 'express';
 import fetch from 'node-fetch';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import * as _yf from 'yahoo-finance2';
-console.log('[yf] import keys:', Object.keys(_yf));
-console.log('[yf] default type:', typeof _yf.default);
-console.log('[yf] default keys:', _yf.default ? Object.keys(_yf.default).slice(0,10) : 'none');
-const yahooFinance = _yf.default ?? _yf;
-console.log('[yf] quoteSummary type:', typeof yahooFinance?.quoteSummary);
+// yahoo-finance2 replaced with direct Yahoo Finance v8 JSON API (no package needed)
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -209,61 +204,53 @@ function calcSafetyScore(data) {
   return { score: Math.round(score), tier, tierClass, breakdown };
 }
 
-// ── Fetch all data for one ticker via Yahoo Finance ──
+// ── Fetch all data for one ticker via Yahoo Finance v8 JSON API ──
 async function fetchTickerData(ticker) {
   const cached = await cacheGet(`stock:${ticker}`);
   if (cached) return cached;
 
   console.log(`[fetch] Calling Yahoo Finance for ${ticker}`);
 
-  let quote;
+  const modules = 'price,summaryDetail,defaultKeyStatistics,assetProfile';
+  const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(ticker)}?modules=${modules}&corsDomain=finance.yahoo.com&formatted=false`;
+
+  let json;
   try {
-    quote = await yahooFinance.quoteSummary(ticker, {
-      modules: ['price', 'summaryDetail', 'defaultKeyStatistics', 'assetProfile']
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; YieldScout/1.0)',
+        'Accept': 'application/json'
+      }
     });
+    json = await res.json();
   } catch (err) {
-    throw new Error(`Ticker "${ticker}" not found or Yahoo Finance returned an error: ${err.message}`);
+    throw new Error(`Network error fetching "${ticker}": ${err.message}`);
   }
 
-  const price_mod = quote.price                  || {};
-  const summary   = quote.summaryDetail          || {};
-  const keyStats  = quote.defaultKeyStatistics   || {};
-  const profile   = quote.assetProfile           || {};
+  const result_obj = json?.quoteSummary?.result?.[0];
+  const error      = json?.quoteSummary?.error;
+  if (!result_obj || error) {
+    throw new Error(`Ticker "${ticker}" not found: ${error?.description || 'no data'}`);
+  }
 
-  const price          = price_mod.regularMarketPrice          ?? null;
+  const price_mod = result_obj.price                || {};
+  const summary   = result_obj.summaryDetail        || {};
+  const keyStats  = result_obj.defaultKeyStatistics || {};
+  const profile   = result_obj.assetProfile         || {};
+
+  const price          = price_mod.regularMarketPrice    ?? null;
   const companyName    = price_mod.longName || price_mod.shortName || ticker;
-  const sector         = profile.sector                        || null;
+  const sector         = profile.sector                  || null;
+  const dividendYield  = summary.dividendYield           ?? null;
+  const annualDividend = summary.trailingAnnualDividendRate ?? null;
+  const payoutRatio    = summary.payoutRatio             ?? null;
+  const beta           = keyStats.beta ?? summary.beta   ?? null;
+  const eps            = keyStats.trailingEps            ?? null;
 
-  // Yield: Yahoo returns as a decimal (e.g. 0.032 = 3.2%)
-  const dividendYield  = summary.dividendYield                 ?? null;
+  if (price == null) throw new Error(`No price data found for "${ticker}".`);
 
-  // Annual dividend amount in dollars
-  const annualDividend = summary.trailingAnnualDividendRate    ?? null;
-
-  // Payout ratio: Yahoo returns as a decimal (e.g. 0.65 = 65%)
-  const payoutRatio    = summary.payoutRatio                   ?? null;
-
-  // Beta: prefer keyStats, fall back to summaryDetail
-  const beta           = keyStats.beta ?? summary.beta         ?? null;
-
-  // EPS (trailing twelve months)
-  const eps            = keyStats.trailingEps                  ?? null;
-
-  if (price == null) {
-    throw new Error(`No price data found for "${ticker}".`);
-  }
-
-  const result = {
-    ticker,
-    companyName,
-    price,
-    annualDividend,
-    dividendYield,
-    payoutRatio,
-    beta,
-    eps,
-    sector
-  };
+  const result = { ticker, companyName, price, annualDividend, dividendYield,
+                   payoutRatio, beta, eps, sector };
 
   await cacheSet(`stock:${ticker}`, result);
   return result;

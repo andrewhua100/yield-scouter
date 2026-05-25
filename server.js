@@ -2,7 +2,8 @@ import express from 'express';
 import fetch from 'node-fetch';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import yahooFinance from 'yahoo-finance2';
+import * as _yf from 'yahoo-finance2';
+const yahooFinance = _yf.default ?? _yf;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -32,10 +33,12 @@ function redisHeaders() {
 async function redisSet(key, value) {
   try {
     const base = (REDIS_URL || '').trim().replace(/\/$/, '');
-    const res = await fetch(base + '/set', {
-      method: 'POST',
-      headers: redisHeaders(),
-      body: JSON.stringify([key, JSON.stringify(value), 'EX', CACHE_TTL_SECONDS])
+    const encodedKey = encodeURIComponent(key);
+    const encodedVal = encodeURIComponent(JSON.stringify(value));
+    const url = `${base}/set/${encodedKey}/${encodedVal}?EX=${CACHE_TTL_SECONDS}`;
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: redisHeaders()
     });
     const data = await res.json();
     console.log(`[redis] SET ${key}:`, data.result, data.error || '');

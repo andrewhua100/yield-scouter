@@ -274,6 +274,19 @@ async function fetchInBatches(tickers, batchSize = 5, delayMs = 300) {
   return results;
 }
 
+// ── Debug endpoint: raw Yahoo data for one ticker ──
+app.get('/api/debug/:ticker', async (req, res) => {
+  const ticker = req.params.ticker.toUpperCase().trim();
+  try {
+    const quote = await yahooFinance.quoteSummary(ticker, {
+      modules: ['price', 'summaryDetail', 'defaultKeyStatistics', 'assetProfile']
+    });
+    res.json(quote);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── Cache status endpoint ──
 app.get('/api/cache-status', async (req, res) => {
   const checks = await Promise.all(
@@ -342,11 +355,16 @@ app.get('/api/scores', async (req, res) => {
   try {
     const results = await fetchInBatches(DIVIDEND_ARISTOCRATS);
 
+    const failures = results.filter(r => r.status === 'rejected');
+    failures.forEach(r => console.error('[scores] rejected:', r.reason?.message));
+    console.log(`[scores] fulfilled: ${results.filter(r => r.status === 'fulfilled').length}, rejected: ${failures.length}`);
+
     const scored = results
       .filter(r => r.status === 'fulfilled')
       .map(r => {
         const data   = r.value;
         const safety = calcSafetyScore(data);
+        console.log(`[scores] ${data.ticker}: price=${data.price} yield=${data.dividendYield} eps=${data.eps} beta=${data.beta}`);
         return { ...data, safety };
       })
       .sort((a, b) => b.safety.score - a.safety.score);

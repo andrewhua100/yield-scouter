@@ -204,33 +204,73 @@ function calcSafetyScore(data) {
   return { score: Math.round(score), tier, tierClass, breakdown };
 }
 
-// ── Fetch all data for one ticker via Yahoo Finance v8 JSON API ──
+// ── Yahoo Finance crumb/cookie auth ──
+let _yfCookie = null;
+let _yfCrumb  = null;
+
+async function getYahooCrumb() {
+  if (_yfCookie && _yfCrumb) return { cookie: _yfCookie, crumb: _yfCrumb };
+
+  console.log('[yf] Fetching Yahoo crumb...');
+  // Step 1: get a session cookie
+  const cookieRes = await fetch('https://fc.yahoo.com', {
+    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }
+  });
+  const cookieHeader = cookieRes.headers.get('set-cookie') || '';
+  const cookie = cookieHeader.split(';')[0];
+
+  // Step 2: get crumb using that cookie
+  const crumbRes = await fetch('https://query1.finance.yahoo.com/v1/test/getcrumb', {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Cookie': cookie
+    }
+  });
+  const crumb = await crumbRes.text();
+  if (!crumb || crumb.includes('<')) {
+    throw new Error('Failed to get Yahoo crumb: ' + crumb.slice(0, 80));
+  }
+
+  _yfCookie = cookie;
+  _yfCrumb  = crumb.trim();
+  console.log('[yf] Got crumb:', _yfCrumb.slice(0, 10) + '...');
+  return { cookie: _yfCookie, crumb: _yfCrumb };
+}
+
+const YF_HEADERS = () => ({
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  'Accept': 'application/json',
+  'Accept-Language': 'en-US,en;q=0.9',
+  'Referer': 'https://finance.yahoo.com'
+});
+
+// ── Fetch all data for one ticker via Yahoo Finance v10 API ──
 async function fetchTickerData(ticker) {
   const cached = await cacheGet(`stock:${ticker}`);
   if (cached) return cached;
 
   console.log(`[fetch] Calling Yahoo Finance for ${ticker}`);
 
-  const modules = 'price,summaryDetail,defaultKeyStatistics,assetProfile';
-  const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(ticker)}?modules=${modules}&corsDomain=finance.yahoo.com&formatted=false`;
-
   let json;
   try {
+    const { cookie, crumb } = await getYahooCrumb();
+    const modules = 'price,summaryDetail,defaultKeyStatistics,assetProfile';
+    const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(ticker)}?modules=${modules}&crumb=${encodeURIComponent(crumb)}&formatted=false`;
     const res = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; YieldScout/1.0)',
-        'Accept': 'application/json'
-      }
+      headers: { ...YF_HEADERS(), 'Cookie': cookie }
     });
     json = await res.json();
   } catch (err) {
+    // Invalidate crumb on failure so next call re-fetches
+    _yfCookie = null; _yfCrumb = null;
     throw new Error(`Network error fetching "${ticker}": ${err.message}`);
   }
 
   const result_obj = json?.quoteSummary?.result?.[0];
   const error      = json?.quoteSummary?.error;
   if (!result_obj || error) {
-    throw new Error(`Ticker "${ticker}" not found: ${error?.description || 'no data'}`);
+    if (error?.code === 'Too Many Requests') { _yfCookie = null; _yfCrumb = null; }
+    throw new Error(`Ticker "${ticker}" not found: ${error?.description || JSON.stringify(json).slice(0,100)}`);
   }
 
   const price_mod = result_obj.price                || {};
@@ -238,14 +278,14 @@ async function fetchTickerData(ticker) {
   const keyStats  = result_obj.defaultKeyStatistics || {};
   const profile   = result_obj.assetProfile         || {};
 
-  const price          = price_mod.regularMarketPrice    ?? null;
+  const price          = price_mod.regularMarketPrice       ?? null;
   const companyName    = price_mod.longName || price_mod.shortName || ticker;
-  const sector         = profile.sector                  || null;
-  const dividendYield  = summary.dividendYield           ?? null;
+  const sector         = profile.sector                     || null;
+  const dividendYield  = summary.dividendYield              ?? null;
   const annualDividend = summary.trailingAnnualDividendRate ?? null;
-  const payoutRatio    = summary.payoutRatio             ?? null;
-  const beta           = keyStats.beta ?? summary.beta   ?? null;
-  const eps            = keyStats.trailingEps            ?? null;
+  const payoutRatio    = summary.payoutRatio                ?? null;
+  const beta           = keyStats.beta ?? summary.beta      ?? null;
+  const eps            = keyStats.trailingEps               ?? null;
 
   if (price == null) throw new Error(`No price data found for "${ticker}".`);
 

@@ -145,26 +145,25 @@ async function fetchTickerData(ticker) {
   const annualDividend = quarterlyDiv ? quarterlyDiv * 4 : null;
   const dividendYield = annualDividend && price ? annualDividend / price : null;
 
-  const beta = metrics.betaTTM ?? profile.beta ?? quote.beta ?? null;
+  const beta = profile.beta ?? quote.beta ?? null;
 
-  // Calculate EPS from available fields
-  const eps = metrics.netIncomePerShareTTM
-    ?? metrics.epsTTM
-    ?? quote.eps
-    ?? null;
+  // Derive EPS from earningsYieldTTM (earningsYield = EPS / Price)
+  // so EPS = earningsYield * price
+  const earningsYield = metrics.earningsYieldTTM ?? null;
+  const eps = earningsYield != null && price ? earningsYield * price : (quote.eps ?? null);
 
-  // Calculate payout ratio ourselves: annual dividend / EPS
-  // This is more reliable than fetching it since we already have both values
+  // Calculate payout ratio = annual dividend / EPS
+  // e.g. KO pays $2.12/year, EPS = $2.80 → payout ratio = 75.7%
   let payoutRatio = null;
   if (annualDividend != null && eps != null && eps > 0) {
-    payoutRatio = (annualDividend / eps); // e.g. 0.65 = 65%
+    payoutRatio = annualDividend / eps;
   } else if (profile.payoutRatio != null) {
     payoutRatio = profile.payoutRatio;
   }
 
   const sector = profile.sector || null;
 
-  console.log(`[${ticker}] beta: ${beta} | eps: ${eps} | payoutRatio: ${payoutRatio} | metrics keys: ${Object.keys(metrics).join(', ')}`);
+  console.log(`[${ticker}] beta: ${beta} | earningsYield: ${earningsYield} | eps: ${eps} | payoutRatio: ${payoutRatio}`);
 
   return {
     ticker, companyName, price, annualDividend, dividendYield,

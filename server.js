@@ -21,18 +21,27 @@ app.use(express.static(path.join(__dirname, 'public')));
 const CACHE_TTL_SECONDS = 24 * 60 * 60; // 24 hours
 
 // ── Redis Cache (Upstash REST API) ──
+// Uses the correct Upstash REST format: POST /pipeline with JSON command arrays
+async function redisPipeline(commands) {
+  const token = (REDIS_TOKEN || '').trim();
+  const res = await fetch(`${REDIS_URL.trim()}/pipeline`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(commands)
+  });
+  return res.json();
+}
+
 async function redisSet(key, value) {
   try {
-    const res = await fetch(`${REDIS_URL}/set/${encodeURIComponent(key)}`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${REDIS_TOKEN}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ value: JSON.stringify(value), ex: CACHE_TTL_SECONDS })
-    });
-    const data = await res.json();
-    console.log(`[redis] SET ${key}:`, data.result);
+    const serialized = JSON.stringify(value);
+    const data = await redisPipeline([
+      ['SET', key, serialized, 'EX', CACHE_TTL_SECONDS]
+    ]);
+    console.log(`[redis] SET ${key}:`, data?.[0]?.result);
   } catch (err) {
     console.error(`[redis] SET error for ${key}:`, err.message);
   }
@@ -40,13 +49,13 @@ async function redisSet(key, value) {
 
 async function redisGet(key) {
   try {
-    const res = await fetch(`${REDIS_URL}/get/${encodeURIComponent(key)}`, {
-      headers: { Authorization: `Bearer ${REDIS_TOKEN}` }
-    });
-    const data = await res.json();
-    if (data.result == null) { console.log(`[redis] MISS ${key}`); return null; }
+    const data = await redisPipeline([
+      ['GET', key]
+    ]);
+    const result = data?.[0]?.result;
+    if (result == null) { console.log(`[redis] MISS ${key}`); return null; }
     console.log(`[redis] HIT ${key}`);
-    return JSON.parse(data.result);
+    return JSON.parse(result);
   } catch (err) {
     console.error(`[redis] GET error for ${key}:`, err.message);
     return null;
@@ -278,7 +287,7 @@ app.get('/api/cache-status', async (req, res) => {
   res.json({
     cachedCount: cached.length,
     missingCount: missing.length,
-    apiCallsSavedEstimate: cached.length, // 1 call per ticker with Yahoo
+    apiCallsSavedEstimate: cached.length,
     cached,
     missing
   });

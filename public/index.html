@@ -48,7 +48,6 @@
     pointer-events: none; z-index: 0;
   }
 
-  /* ── Navigation ── */
   nav {
     position: sticky; top: 0; z-index: 100;
     background: rgba(10,10,15,0.9);
@@ -86,7 +85,6 @@
     padding: 52px 24px 100px;
   }
 
-  /* ── Home ── */
   .home-hero {
     text-align: center; padding: 80px 24px 60px;
     position: relative; z-index: 1;
@@ -147,7 +145,6 @@
   .feature-title { font-size: 14px; font-weight: 500; margin-bottom: 6px; }
   .feature-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
 
-  /* ── Page headers ── */
   .page-header { margin-bottom: 32px; animation: fadeUp 0.5s ease both; }
   .page-title {
     font-family: 'Playfair Display', serif;
@@ -168,7 +165,6 @@
   }
   .dot { width: 7px; height: 7px; border-radius: 50%; }
 
-  /* ── Search ── */
   .search-section { margin-bottom: 32px; animation: fadeUp 0.5s 0.05s ease both; }
   .ticker-label {
     font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
@@ -205,7 +201,6 @@
 
   .hint { font-size: 12px; color: var(--muted); margin-top: 10px; font-style: italic; }
 
-  /* ── Tables ── */
   .results-header {
     display: flex; align-items: center;
     justify-content: space-between; margin-bottom: 12px;
@@ -262,7 +257,6 @@
   .yield-cell.good      { color: var(--good); }
   .yield-cell.bad       { color: var(--bad); }
 
-  /* Yield rating badge */
   .badge {
     display: inline-block; padding: 4px 12px; border-radius: 100px;
     font-family: 'DM Mono', monospace;
@@ -273,7 +267,6 @@
   .badge.good      { background: rgba(250,204,21,0.15);  color: var(--good);      border: 1px solid rgba(250,204,21,0.25); }
   .badge.bad       { background: rgba(248,113,113,0.15); color: var(--bad);       border: 1px solid rgba(248,113,113,0.25); }
 
-  /* Safety score badge */
   .score-badge {
     display: inline-flex; align-items: center; gap: 6px;
     padding: 5px 14px; border-radius: 100px;
@@ -286,21 +279,21 @@
   .score-badge.moderate { background: rgba(250,204,21,0.15);  color: var(--moderate); border: 1px solid rgba(250,204,21,0.3); }
   .score-badge.risky    { background: rgba(248,113,113,0.15); color: var(--risky);    border: 1px solid rgba(248,113,113,0.3); }
 
-.score-tooltip {
-  position: fixed;
-  width: 280px;
-  background: #1a1a28;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 16px;
-  z-index: 9999;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
-  text-align: left;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-.score-tooltip.visible { opacity: 1; }
+  .score-tooltip {
+    position: fixed;
+    width: 280px;
+    background: #1a1a28;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    z-index: 9999;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+    text-align: left;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .score-tooltip.visible { opacity: 1; }
 
   .tooltip-title {
     font-family: 'DM Mono', monospace;
@@ -314,25 +307,19 @@
     margin-bottom: 10px;
   }
   .tooltip-row:last-child { margin-bottom: 0; }
-
   .tooltip-label { font-size: 12px; color: var(--text); flex: 1; }
   .tooltip-value { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); margin: 0 8px; }
 
-  /* Mini progress bar for each factor */
   .tooltip-bar-wrap {
     width: 60px; height: 5px;
     background: var(--border); border-radius: 3px; overflow: hidden;
   }
-  .tooltip-bar-fill {
-    height: 100%; border-radius: 3px;
-    transition: width 0.3s;
-  }
+  .tooltip-bar-fill { height: 100%; border-radius: 3px; }
 
   .tooltip-total {
     margin-top: 12px; padding-top: 10px;
     border-top: 1px solid var(--border);
-    display: flex; justify-content: space-between;
-    align-items: center;
+    display: flex; justify-content: space-between; align-items: center;
   }
   .tooltip-total-label {
     font-family: 'DM Mono', monospace;
@@ -344,7 +331,6 @@
     font-size: 16px; font-weight: 500; color: var(--accent);
   }
 
-  /* Rank badge */
   .rank {
     display: inline-flex; align-items: center; justify-content: center;
     width: 28px; height: 28px; border-radius: 50%;
@@ -355,7 +341,6 @@
   .rank.silver { background: rgba(180,180,200,0.15); color: #b4b4c8;       border: 1px solid rgba(180,180,200,0.3); }
   .rank.bronze { background: rgba(180,120,80,0.15);  color: #b47850;       border: 1px solid rgba(180,120,80,0.3); }
 
-  /* State boxes */
   .state-box {
     border: 1px solid var(--border); border-radius: 10px;
     padding: 48px; text-align: center;
@@ -408,11 +393,11 @@
   <div class="nav-logo" onclick="showPage('home')">Yield Scout</div>
   <button class="nav-tab active" onclick="showPage('home')">Home</button>
   <button class="nav-tab" onclick="showPage('search')">Search</button>
-  <button class="nav-tab" onclick="showPage('top10')">Top 10</button>
+  <button class="nav-tab" onclick="showPage('top50')">Top 50</button>
   <button class="nav-tab" onclick="showPage('scores')">Safety Scores</button>
 </nav>
 
-<!-- ══════════════════════ HOME ══════════════════════ -->
+<!-- HOME -->
 <div id="page-home" class="page active">
   <div class="home-hero">
     <div class="home-eyebrow">Yield Scout</div>
@@ -436,8 +421,8 @@
     </div>
     <div class="feature-card">
       <div class="feature-icon">🏆</div>
-      <div class="feature-title">Live Top 10</div>
-      <div class="feature-desc">Highest-yielding stocks from our curated watchlist, ranked with live market data.</div>
+      <div class="feature-title">Top 50 Dividend Stocks</div>
+      <div class="feature-desc">The highest-yielding Dividend Aristocrats ranked live — S&P 500 companies with 25+ consecutive years of dividend increases.</div>
     </div>
     <div class="feature-card">
       <div class="feature-icon">🔍</div>
@@ -447,7 +432,7 @@
   </div>
 </div>
 
-<!-- ══════════════════════ SEARCH ══════════════════════ -->
+<!-- SEARCH -->
 <div id="page-search" class="page">
   <div class="wrapper">
     <div class="page-header">
@@ -471,30 +456,30 @@
   </div>
 </div>
 
-<!-- ══════════════════════ TOP 10 ══════════════════════ -->
-<div id="page-top10" class="page">
+<!-- TOP 50 -->
+<div id="page-top50" class="page">
   <div class="wrapper">
     <div class="page-header">
-      <h2 class="page-title">Top <span>10</span> Dividend Stocks</h2>
-      <p class="page-subtitle">Highest-yielding stocks from our curated watchlist, ranked live by dividend yield.</p>
+      <h2 class="page-title">Top <span>50</span> Dividend Stocks</h2>
+      <p class="page-subtitle">The highest-yielding Dividend Aristocrats — S&P 500 companies with 25+ consecutive years of dividend increases — ranked live by yield.</p>
     </div>
-    <div id="top10-output">
+    <div id="top50-output">
       <div class="state-box">
         <span class="icon">🏆</span>
         <div class="state-title">Ready to load</div>
         <p>Click below to fetch live dividend data.</p>
-        <button onclick="loadTop10()">Load Top 10</button>
+        <button onclick="loadTop50()">Load Top 50</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ══════════════════════ SAFETY SCORES ══════════════════════ -->
+<!-- SAFETY SCORES -->
 <div id="page-scores" class="page">
   <div class="wrapper">
     <div class="page-header">
       <h2 class="page-title">Dividend <span>Safety Scores</span></h2>
-      <p class="page-subtitle">Stocks ranked by our proprietary 0–100 Safety Score — combining yield, payout ratio, volatility, profitability, and sector. Hover any score to see the breakdown.</p>
+      <p class="page-subtitle">Dividend Aristocrats ranked by our proprietary 0–100 Safety Score — combining yield, payout ratio, volatility, profitability, and sector. Hover any score to see the breakdown.</p>
       <div class="thresholds">
         <div class="threshold-chip"><div class="dot" style="background:var(--safe)"></div> Safe 70–100</div>
         <div class="threshold-chip"><div class="dot" style="background:var(--moderate)"></div> Moderate 40–69</div>
@@ -514,20 +499,20 @@
 
 <script>
   // ── Navigation ──
-  let top10Loaded = false;
+  let top50Loaded = false;
   let scoresLoaded = false;
 
   function showPage(name) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
     document.getElementById('page-' + name).classList.add('active');
-    const idx = { home: 0, search: 1, top10: 2, scores: 3 }[name];
+    const idx = { home: 0, search: 1, top50: 2, scores: 3 }[name];
     document.querySelectorAll('.nav-tab')[idx].classList.add('active');
-    if (name === 'top10' && !top10Loaded) loadTop10();
+    if (name === 'top50' && !top50Loaded) loadTop50();
     if (name === 'scores' && !scoresLoaded) loadScores();
   }
 
-  // ── Helpers ──
+  // ── Rating helpers ──
   const EXCELLENT = 0.05;
   const GOOD = 0.03;
 
@@ -543,11 +528,14 @@
     return n != null && !isNaN(n) ? Number(n).toFixed(d) : '—';
   }
 
-  // ── Build the hover tooltip HTML from breakdown data ──
-  function buildTooltip(safety) {
-    const { score, tier, tierClass, breakdown } = safety;
+  // ── Tooltip ──
+  const tooltipEl = document.createElement('div');
+  tooltipEl.className = 'score-tooltip';
+  document.body.appendChild(tooltipEl);
 
-    // Color for each mini bar based on score ratio
+  function showTooltip(event, badge) {
+    const safety = JSON.parse(decodeURIComponent(badge.dataset.safety));
+
     function barColor(s, max) {
       const ratio = s / max;
       if (ratio >= 0.75) return '#4ade80';
@@ -556,15 +544,15 @@
     }
 
     const factors = [
-      { label: 'Dividend Yield',   key: 'yield',   desc: 'Sweet spot is 3–8%. Very high yields can be a trap.' },
-      { label: 'Payout Ratio',     key: 'payout',  desc: 'Under 60% is healthy. REITs/Utilities allowed higher.' },
-      { label: 'Beta (Volatility)',key: 'beta',    desc: 'Lower = more stable. Under 0.8 is ideal for income.' },
-      { label: 'EPS (Profit)',     key: 'eps',     desc: 'Positive EPS means the company can sustain dividends.' },
-      { label: 'Sector',           key: 'sector',  desc: 'Staples, utilities, and REITs are historically reliable.' },
+      { label: 'Dividend Yield',    key: 'yield',  desc: 'Sweet spot is 3–8%. Very high yields can be a trap.' },
+      { label: 'Payout Ratio',      key: 'payout', desc: 'Under 60% healthy. REITs/Utilities allowed higher.' },
+      { label: 'Beta (Volatility)', key: 'beta',   desc: 'Lower = more stable. Under 0.8 is ideal for income.' },
+      { label: 'EPS (Profit)',      key: 'eps',    desc: 'Positive EPS means the company can sustain dividends.' },
+      { label: 'Sector',            key: 'sector', desc: 'Staples, utilities, and REITs are historically reliable.' },
     ];
 
-    let rows = factors.map(f => {
-      const b = breakdown[f.key];
+    const rows = factors.map(f => {
+      const b = safety.breakdown[f.key];
       const fillPct = Math.round((b.score / b.max) * 100);
       const color = barColor(b.score, b.max);
       return `
@@ -577,20 +565,36 @@
         </div>`;
     }).join('');
 
-    return `
-      <div class="score-tooltip">
-        <div class="tooltip-title">Safety Score Breakdown</div>
-        ${rows}
-        <div class="tooltip-total">
-          <div class="tooltip-total-label">Total Score</div>
-          <div class="tooltip-total-score">${score}/100</div>
-        </div>
+    tooltipEl.innerHTML = `
+      <div class="tooltip-title">Safety Score Breakdown</div>
+      ${rows}
+      <div class="tooltip-total">
+        <div class="tooltip-total-label">Total Score</div>
+        <div class="tooltip-total-score">${safety.score}/100</div>
       </div>`;
+
+    positionTooltip(event);
+    tooltipEl.classList.add('visible');
   }
 
+  function positionTooltip(event) {
+    const margin = 12;
+    const tw = 280, th = 220;
+    let x = event.clientX - tw / 2;
+    let y = event.clientY - th - margin;
+    if (x < margin) x = margin;
+    if (x + tw > window.innerWidth - margin) x = window.innerWidth - tw - margin;
+    if (y < margin) y = event.clientY + margin;
+    tooltipEl.style.left = x + 'px';
+    tooltipEl.style.top  = y + 'px';
+  }
+
+  function hideTooltip() {
+    tooltipEl.classList.remove('visible');
+  }
+
+  // ── Score badge ──
   function scoreBadge(safety) {
-    // Store breakdown as JSON in a data attribute
-    // Tooltip is shown/hidden via JS mouseover so table overflow can't clip it
     const dataAttr = encodeURIComponent(JSON.stringify(safety));
     return `
       <span class="score-badge ${safety.tierClass}"
@@ -698,56 +702,56 @@
     renderSearchTable();
   }
 
-  // ── Top 10 page ──
-  let top10Data = [];
-  let top10SortKey = 'dividendYield';
-  let top10SortDir = -1;
+  // ── Top 50 page ──
+  let top50Data = [];
+  let top50SortKey = 'dividendYield';
+  let top50SortDir = -1;
 
-  async function loadTop10() {
-    top10Loaded = false;
-    const output = document.getElementById('top10-output');
-    output.innerHTML = `<div class="state-box"><span class="spinner"></span> Fetching live data…</div>`;
+  async function loadTop50() {
+    top50Loaded = false;
+    const output = document.getElementById('top50-output');
+    output.innerHTML = `<div class="state-box"><span class="spinner"></span> Fetching live data from Dividend Aristocrats… this may take a few seconds.</div>`;
     try {
       const res = await fetch('/api/top10');
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      top10Data = data;
-      top10Loaded = true;
-      renderTop10Table();
+      top50Data = data;
+      top50Loaded = true;
+      renderTop50Table();
     } catch (e) {
       output.innerHTML = `<div class="state-box" style="color:var(--bad)">
         <span class="icon">⚠</span><div class="state-title">Error</div>${e.message}
-        <br><br><button onclick="loadTop10()">Try Again</button></div>`;
+        <br><br><button onclick="loadTop50()">Try Again</button></div>`;
     }
   }
 
-  function renderTop10Table() {
-    const output = document.getElementById('top10-output');
-    const sorted = [...top10Data].sort((a, b) => {
-      const av = a[top10SortKey] ?? -Infinity;
-      const bv = b[top10SortKey] ?? -Infinity;
-      return (av - bv) * top10SortDir;
+  function renderTop50Table() {
+    const output = document.getElementById('top50-output');
+    const sorted = [...top50Data].sort((a, b) => {
+      const av = a[top50SortKey] ?? -Infinity;
+      const bv = b[top50SortKey] ?? -Infinity;
+      return (av - bv) * top50SortDir;
     });
 
-    const arrow = k => `<span class="sort-arrow">${top10SortKey===k?(top10SortDir===1?'↑':'↓'):'↕'}</span>`;
+    const arrow = k => `<span class="sort-arrow">${top50SortKey===k?(top50SortDir===1?'↑':'↓'):'↕'}</span>`;
 
     let html = `
       <div class="results-header">
-        <div class="results-title">Top 10 by Dividend Yield</div>
-        <button class="refresh-btn" onclick="loadTop10()">↻ Refresh</button>
+        <div class="results-title">Top 50 by Dividend Yield</div>
+        <button class="refresh-btn" onclick="loadTop50()">↻ Refresh</button>
       </div>
       <div class="table-wrap"><table>
         <thead><tr>
           <th>Rank</th>
           <th>Ticker</th>
-          <th class="sortable ${top10SortKey==='price'?'active':''}" onclick="setTop10Sort('price')">Price ${arrow('price')}</th>
-          <th class="sortable ${top10SortKey==='annualDividend'?'active':''}" onclick="setTop10Sort('annualDividend')">Ann. Div ${arrow('annualDividend')}</th>
-          <th class="sortable ${top10SortKey==='dividendYield'?'active':''}" onclick="setTop10Sort('dividendYield')">Yield ${arrow('dividendYield')}</th>
+          <th class="sortable ${top50SortKey==='price'?'active':''}" onclick="setTop50Sort('price')">Price ${arrow('price')}</th>
+          <th class="sortable ${top50SortKey==='annualDividend'?'active':''}" onclick="setTop50Sort('annualDividend')">Ann. Dividend ${arrow('annualDividend')}</th>
+          <th class="sortable ${top50SortKey==='dividendYield'?'active':''}" onclick="setTop50Sort('dividendYield')">Yield ${arrow('dividendYield')}</th>
           <th>Rating</th>
         </tr></thead><tbody>`;
 
     sorted.forEach((s, i) => {
-      const originalRank = top10Data.findIndex(x => x.ticker === s.ticker) + 1;
+      const originalRank = top50Data.findIndex(x => x.ticker === s.ticker) + 1;
       const rankClass = originalRank === 1 ? 'gold' : originalRank === 2 ? 'silver' : originalRank === 3 ? 'bronze' : '';
       const yld = s.dividendYield;
       const hasDiv = yld != null && yld > 0;
@@ -766,10 +770,10 @@
     output.innerHTML = html;
   }
 
-  function setTop10Sort(key) {
-    if (top10SortKey === key) top10SortDir *= -1;
-    else { top10SortKey = key; top10SortDir = -1; }
-    renderTop10Table();
+  function setTop50Sort(key) {
+    if (top50SortKey === key) top50SortDir *= -1;
+    else { top50SortKey = key; top50SortDir = -1; }
+    renderTop50Table();
   }
 
   // ── Safety Scores page ──
@@ -796,7 +800,6 @@
   }
 
   function getNestedVal(obj, key) {
-    // Supports dot notation e.g. 'safety.score'
     return key.split('.').reduce((o, k) => o?.[k], obj) ?? -Infinity;
   }
 
@@ -846,82 +849,11 @@
     renderScoresTable();
   }
 
-  // Enter key on search page
   document.addEventListener('keydown', e => {
     if (e.key === 'Enter' && document.getElementById('page-search').classList.contains('active')) {
       runScreener();
     }
   });
-  // ── Fixed-position tooltip logic ──
-  // Creates one shared tooltip element and moves it with the mouse
-  // This avoids table overflow:hidden clipping the tooltip
-
-  const tooltipEl = document.createElement('div');
-  tooltipEl.className = 'score-tooltip';
-  document.body.appendChild(tooltipEl);
-
-  function showTooltip(event, badge) {
-    const safety = JSON.parse(decodeURIComponent(badge.dataset.safety));
-
-    function barColor(s, max) {
-      const ratio = s / max;
-      if (ratio >= 0.75) return '#4ade80';
-      if (ratio >= 0.4)  return '#facc15';
-      return '#f87171';
-    }
-
-    const factors = [
-      { label: 'Dividend Yield',    key: 'yield',  desc: 'Sweet spot is 3–8%. Very high yields can be a trap.' },
-      { label: 'Payout Ratio',      key: 'payout', desc: 'Under 60% healthy. REITs/Utilities allowed higher.' },
-      { label: 'Beta (Volatility)', key: 'beta',   desc: 'Lower = more stable. Under 0.8 is ideal for income.' },
-      { label: 'EPS (Profit)',      key: 'eps',    desc: 'Positive EPS means the company can sustain dividends.' },
-      { label: 'Sector',            key: 'sector', desc: 'Staples, utilities, and REITs are historically reliable.' },
-    ];
-
-    const rows = factors.map(f => {
-      const b = safety.breakdown[f.key];
-      const fillPct = Math.round((b.score / b.max) * 100);
-      const color = barColor(b.score, b.max);
-      return `
-        <div class="tooltip-row" title="${f.desc}">
-          <div class="tooltip-label">${f.label}</div>
-          <div class="tooltip-value">${b.value}</div>
-          <div class="tooltip-bar-wrap">
-            <div class="tooltip-bar-fill" style="width:${fillPct}%;background:${color}"></div>
-          </div>
-        </div>`;
-    }).join('');
-
-    tooltipEl.innerHTML = `
-      <div class="tooltip-title">Safety Score Breakdown</div>
-      ${rows}
-      <div class="tooltip-total">
-        <div class="tooltip-total-label">Total Score</div>
-        <div class="tooltip-total-score">${safety.score}/100</div>
-      </div>`;
-
-    positionTooltip(event);
-    tooltipEl.classList.add('visible');
-  }
-
-  function positionTooltip(event) {
-    const margin = 12;
-    const tw = 280, th = 220; // approx tooltip size
-    let x = event.clientX - tw / 2;
-    let y = event.clientY - th - margin;
-
-    // Keep within viewport
-    if (x < margin) x = margin;
-    if (x + tw > window.innerWidth - margin) x = window.innerWidth - tw - margin;
-    if (y < margin) y = event.clientY + margin; // flip below if too close to top
-
-    tooltipEl.style.left = x + 'px';
-    tooltipEl.style.top  = y + 'px';
-  }
-
-  function hideTooltip() {
-    tooltipEl.classList.remove('visible');
-  }
 </script>
 </body>
 </html>

@@ -7,40 +7,84 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3000;
 const API_KEY = process.env.FMP_API_KEY;
+const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
+const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
 
 console.log('API KEY loaded:', API_KEY ? 'YES' : 'NO');
+console.log('Redis loaded:', REDIS_URL ? 'YES' : 'NO');
 
-if (!API_KEY) {
-  console.warn('Warning: FMP_API_KEY environment variable is not set.');
-}
+if (!API_KEY) console.warn('Warning: FMP_API_KEY environment variable is not set.');
+if (!REDIS_URL) console.warn('Warning: UPSTASH_REDIS_REST_URL is not set — falling back to in-memory cache.');
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ── In-Memory Cache ──
-const cache = new Map();
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+// ── Cache TTL ──
+const CACHE_TTL_SECONDS = 24 * 60 * 60; // 24 hours
 
-function cacheSet(key, data) {
-  cache.set(key, { data, expiresAt: Date.now() + CACHE_TTL_MS });
-  console.log(`[cache] SET ${key} — expires in 24hrs. Cache size: ${cache.size}`);
+// ── Redis Cache (Upstash REST API) ──
+// Uses Upstash's simple HTTP REST API — no extra npm package needed
+async function redisSet(key, value) {
+  try {
+    const res = await fetch(`${REDIS_URL}/set/${encodeURIComponent(key)}`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${REDIS_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      // EX sets expiry in seconds — data auto-deletes after 24hrs
+      body: JSON.stringify({ value: JSON.stringify(value), ex: CACHE_TTL_SECONDS })
+    });
+    const data = await res.json();
+    console.log(`[redis] SET ${key}:`, data.result);
+  } catch (err) {
+    console.error(`[redis] SET error for ${key}:`, err.message);
+  }
 }
 
-function cacheGet(key) {
-  const entry = cache.get(key);
-  if (!entry) return null;
-  if (Date.now() > entry.expiresAt) {
-    cache.delete(key);
-    console.log(`[cache] EXPIRED ${key}`);
+async function redisGet(key) {
+  try {
+    const res = await fetch(`${REDIS_URL}/get/${encodeURIComponent(key)}`, {
+      headers: { Authorization: `Bearer ${REDIS_TOKEN}` }
+    });
+    const data = await res.json();
+    if (data.result == null) {
+      console.log(`[redis] MISS ${key}`);
+      return null;
+    }
+    console.log(`[redis] HIT ${key}`);
+    return JSON.parse(data.result);
+  } catch (err) {
+    console.error(`[redis] GET error for ${key}:`, err.message);
     return null;
   }
-  console.log(`[cache] HIT ${key}`);
-  return entry.data;
+}
+
+// ── In-memory fallback cache ──
+// Used if Redis env vars are not set
+const memCache = new Map();
+
+async function cacheSet(key, value) {
+  if (REDIS_URL && REDIS_TOKEN) {
+    await redisSet(key, value);
+  } else {
+    memCache.set(key, { value, expiresAt: Date.now() + CACHE_TTL_SECONDS * 1000 });
+    console.log(`[memcache] SET ${key}`);
+  }
+}
+
+async function cacheGet(key) {
+  if (REDIS_URL && REDIS_TOKEN) {
+    return await redisGet(key);
+  } else {
+    const entry = memCache.get(key);
+    if (!entry) return null;
+    if (Date.now() > entry.expiresAt) { memCache.delete(key); return null; }
+    console.log(`[memcache] HIT ${key}`);
+    return entry.value;
+  }
 }
 
 // ── Dividend Aristocrats ──
-// S&P 500 companies with 25+ consecutive years of dividend increases
-// This is the gold standard list for dividend investing
-// Capped at 60 to stay within 250 API calls/day (60 x 4 = 240 calls)
 const DIVIDEND_ARISTOCRATS = [
   // Consumer Staples
   'KO', 'PEP', 'PG', 'CL', 'KMB', 'MKC', 'SYY', 'GPC', 'CLX', 'HRL',
@@ -60,7 +104,7 @@ const DIVIDEND_ARISTOCRATS = [
   'APD', 'PPG', 'NUE', 'ALB',
   // Communication
   'VFC', 'LOW', 'EXPD',
-  // Mixed / Other Aristocrats
+  // Mixed
   'ADP', 'BEN', 'CTAS', 'EFX', 'FAST', 'LDOS', 'LECO', 'NDSN', 'ROP', 'TROW'
 ];
 
@@ -155,9 +199,9 @@ function calcSafetyScore(data) {
 }
 
 // ── Fetch all data for one ticker ──
-// Checks cache first — only calls FMP if data is missing or expired
+// Checks Redis first — only calls FMP if data is missing or expired
 async function fetchTickerData(ticker) {
-  const cached = cacheGet(ticker);
+  const cached = await cacheGet(`stock:${ticker}`);
   if (cached) return cached;
 
   console.log(`[fetch] Calling FMP for ${ticker}`);
@@ -192,7 +236,6 @@ async function fetchTickerData(ticker) {
   const dividendYield = annualDividend && price ? annualDividend / price : null;
 
   const beta = profile.beta ?? quote.beta ?? null;
-
   const earningsYield = metrics.earningsYieldTTM ?? null;
   const eps = earningsYield != null && price ? earningsYield * price : (quote.eps ?? null);
 
@@ -210,18 +253,30 @@ async function fetchTickerData(ticker) {
     payoutRatio, beta, eps, sector
   };
 
-  cacheSet(ticker, result);
+  // Store in Redis — survives server restarts
+  await cacheSet(`stock:${ticker}`, result);
+
   return result;
 }
 
 // ── Cache status endpoint ──
-app.get('/api/cache-status', (req, res) => {
-  const entries = [];
-  for (const [key, entry] of cache.entries()) {
-    const minutesLeft = Math.round((entry.expiresAt - Date.now()) / 60000);
-    entries.push({ ticker: key, expiresInMinutes: minutesLeft });
-  }
-  res.json({ totalCached: cache.size, apiCallsSaved: cache.size * 4, entries });
+app.get('/api/cache-status', async (req, res) => {
+  // Check which aristocrats are currently cached in Redis
+  const checks = await Promise.all(
+    DIVIDEND_ARISTOCRATS.map(async ticker => {
+      const data = await cacheGet(`stock:${ticker}`);
+      return { ticker, cached: data !== null };
+    })
+  );
+  const cached = checks.filter(c => c.cached).map(c => c.ticker);
+  const missing = checks.filter(c => !c.cached).map(c => c.ticker);
+  res.json({
+    cachedCount: cached.length,
+    missingCount: missing.length,
+    apiCallsSavedEstimate: cached.length * 4,
+    cached,
+    missing
+  });
 });
 
 // ── Search endpoint ──
@@ -243,18 +298,14 @@ app.get('/api/stock/:ticker', async (req, res) => {
   }
 });
 
-// ── Top 10 endpoint ──
-// Fetches all 60 Dividend Aristocrats, ranks by yield, returns top 10
-// First load uses up to 240 API calls, then cached for 24hrs
+// ── Top 50 endpoint ──
 app.get('/api/top10', async (req, res) => {
   if (!API_KEY) return res.status(500).json({ error: 'API key not configured.' });
 
-  // Check if we have a cached top50 result list
-const cachedTop50 = cacheGet('__top50__');
-if (cachedTop50) return res.json(cachedTop50);
+  const cachedTop50 = await cacheGet('__top50__');
+  if (cachedTop50) return res.json(cachedTop50);
 
   try {
-    // Fetch all aristocrats in parallel — cache means repeat calls are free
     const results = await Promise.allSettled(
       DIVIDEND_ARISTOCRATS.map(ticker => fetchTickerData(ticker))
     );
@@ -267,22 +318,19 @@ if (cachedTop50) return res.json(cachedTop50);
       .sort((a, b) => b.dividendYield - a.dividendYield)
       .slice(0, 50);
 
-    cacheSet('__top50__', top50);
-
+    await cacheSet('__top50__', top50);
     res.json(top50);
   } catch (err) {
-    console.error('Error fetching top 10:', err.message);
-    res.status(500).json({ error: 'Failed to fetch top 10.' });
+    console.error('Error fetching top 50:', err.message);
+    res.status(500).json({ error: 'Failed to fetch top 50.' });
   }
 });
 
 // ── Scores endpoint ──
-// Fetches all 60 Dividend Aristocrats, ranks by Safety Score
 app.get('/api/scores', async (req, res) => {
   if (!API_KEY) return res.status(500).json({ error: 'API key not configured.' });
 
-  // Check if we have a cached scores result list
-  const cachedScores = cacheGet('__scores__');
+  const cachedScores = await cacheGet('__scores__');
   if (cachedScores) return res.json(cachedScores);
 
   try {
@@ -299,9 +347,7 @@ app.get('/api/scores', async (req, res) => {
       })
       .sort((a, b) => b.safety.score - a.safety.score);
 
-    // Cache the final scores list
-    cacheSet('__scores__', scored);
-
+    await cacheSet('__scores__', scored);
     res.json(scored);
   } catch (err) {
     console.error('Error fetching scores:', err.message);

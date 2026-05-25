@@ -3,7 +3,11 @@ import fetch from 'node-fetch';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import * as _yf from 'yahoo-finance2';
+console.log('[yf] import keys:', Object.keys(_yf));
+console.log('[yf] default type:', typeof _yf.default);
+console.log('[yf] default keys:', _yf.default ? Object.keys(_yf.default).slice(0,10) : 'none');
 const yahooFinance = _yf.default ?? _yf;
+console.log('[yf] quoteSummary type:', typeof yahooFinance?.quoteSummary);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -33,16 +37,18 @@ function redisHeaders() {
 async function redisSet(key, value) {
   try {
     const base = (REDIS_URL || '').trim().replace(/\/$/, '');
-    // Upstash REST: POST /set with JSON array body ["key","value","EX",ttl]
-    const res = await fetch(base + '/set', {
+    const serialized = JSON.stringify(value);
+    // Upstash REST pipeline: always works regardless of value content
+    const res = await fetch(base + '/pipeline', {
       method: 'POST',
       headers: redisHeaders(),
-      body: JSON.stringify([key, JSON.stringify(value), 'EX', String(CACHE_TTL_SECONDS)])
+      body: JSON.stringify([
+        ['SET', key, serialized],
+        ['EXPIRE', key, CACHE_TTL_SECONDS]
+      ])
     });
     const text = await res.text();
     console.log(`[redis] SET ${key} raw:`, text.slice(0, 80));
-    const data = JSON.parse(text);
-    if (data.error) console.error(`[redis] SET ${key} error:`, data.error);
   } catch (err) {
     console.error(`[redis] SET error for ${key}:`, err.message);
   }

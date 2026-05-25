@@ -2,18 +2,20 @@ import express from 'express';
 import fetch from 'node-fetch';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import yahooFinance from 'yahoo-finance2';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3000;
-const API_KEY = process.env.TD_API_KEY;          // Twelve Data key
 const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
 
-console.log('Twelve Data API KEY loaded:', API_KEY ? 'YES' : 'NO');
+// Suppress yahoo-finance2 validation noise
+yahooFinance.setGlobalConfig({ validation: { logErrors: false } });
+
+console.log('Yahoo Finance: ready (no API key required)');
 console.log('Redis loaded:', REDIS_URL ? 'YES' : 'NO');
 
-if (!API_KEY) console.warn('Warning: TD_API_KEY environment variable is not set.');
 if (!REDIS_URL) console.warn('Warning: UPSTASH_REDIS_REST_URL is not set — falling back to in-memory cache.');
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -192,74 +194,48 @@ function calcSafetyScore(data) {
   return { score: Math.round(score), tier, tierClass, breakdown };
 }
 
-// ── Twelve Data base URL ──
-const TD = 'https://api.twelvedata.com';
-
-// ── Fetch all data for one ticker ──
-// Uses only 2 API calls per ticker (vs 4 with FMP):
-//   1. /statistics  → beta, EPS, payout ratio, sector, price, dividend yield, company name
-//   2. /dividends   → recent dividend amount (for annualDividend calculation)
+// ── Fetch all data for one ticker via Yahoo Finance ──
 async function fetchTickerData(ticker) {
   const cached = await cacheGet(`stock:${ticker}`);
   if (cached) return cached;
 
-  console.log(`[fetch] Calling Twelve Data for ${ticker}`);
+  console.log(`[fetch] Calling Yahoo Finance for ${ticker}`);
 
-  const [statsRes, divRes] = await Promise.all([
-    fetch(`${TD}/statistics?symbol=${ticker}&apikey=${API_KEY}`),
-    fetch(`${TD}/dividends?symbol=${ticker}&range=3m&apikey=${API_KEY}`)
-  ]);
-
-  const [statsData, divData] = await Promise.all([
-    statsRes.json(),
-    divRes.json()
-  ]);
-
-  // Twelve Data returns { status: 'error' } for unknown tickers
-  if (statsData.status === 'error' || !statsData.statistics) {
-    throw new Error(`Ticker "${ticker}" not found or no data available.`);
+  let quote;
+  try {
+    quote = await yahooFinance.quoteSummary(ticker, {
+      modules: ['price', 'summaryDetail', 'defaultKeyStatistics', 'assetProfile']
+    });
+  } catch (err) {
+    throw new Error(`Ticker "${ticker}" not found or Yahoo Finance returned an error: ${err.message}`);
   }
 
-  const stats = statsData.statistics;
-  const valuation = stats.valuations_metrics || {};
-  const stock = stats.stock_statistics || {};
-  const dividends = stats.dividends_and_splits || {};
-  const financials = stats.financials || {};
+  const price_mod = quote.price                  || {};
+  const summary   = quote.summaryDetail          || {};
+  const keyStats  = quote.defaultKeyStatistics   || {};
+  const profile   = quote.assetProfile           || {};
 
-  // Price: prefer from statistics, fall back to a quote call if missing
-  let price = parseFloat(stock.price) || null;
-  if (!price) {
-    // Fallback: one extra call for price only (rare edge case)
-    const qRes = await fetch(`${TD}/price?symbol=${ticker}&apikey=${API_KEY}`);
-    const qData = await qRes.json();
-    price = parseFloat(qData.price) || null;
-  }
+  const price          = price_mod.regularMarketPrice          ?? null;
+  const companyName    = price_mod.longName || price_mod.shortName || ticker;
+  const sector         = profile.sector                        || null;
 
-  const companyName = statsData.name || ticker;
-  const sector = statsData.sector || null;
+  // Yield: Yahoo returns as a decimal (e.g. 0.032 = 3.2%)
+  const dividendYield  = summary.dividendYield                 ?? null;
+
+  // Annual dividend amount in dollars
+  const annualDividend = summary.trailingAnnualDividendRate    ?? null;
+
+  // Payout ratio: Yahoo returns as a decimal (e.g. 0.65 = 65%)
+  const payoutRatio    = summary.payoutRatio                   ?? null;
+
+  // Beta: prefer keyStats, fall back to summaryDetail
+  const beta           = keyStats.beta ?? summary.beta         ?? null;
 
   // EPS (trailing twelve months)
-  const eps = parseFloat(financials.eps_ttm) || parseFloat(valuation.eps) || null;
+  const eps            = keyStats.trailingEps                  ?? null;
 
-  // Beta
-  const beta = parseFloat(stock.beta) || null;
-
-  // Payout ratio from statistics (already a decimal, e.g. 0.65 = 65%)
-  const payoutRatioRaw = parseFloat(dividends.payout_ratio) || null;
-  const payoutRatio = payoutRatioRaw;
-
-  // Dividend yield from statistics (decimal)
-  let dividendYield = parseFloat(dividends.forward_annual_dividend_yield) || null;
-
-  // Annual dividend amount from statistics
-  let annualDividend = parseFloat(dividends.forward_annual_dividend_rate) || null;
-
-  // Fill in from recent dividends history if statistics fields are missing
-  if ((!annualDividend || !dividendYield) && divData.dividends && divData.dividends.length > 0) {
-    const recent = divData.dividends[0];
-    const quarterlyAmt = parseFloat(recent.amount) || null;
-    if (quarterlyAmt && !annualDividend) annualDividend = quarterlyAmt * 4;
-    if (annualDividend && price && !dividendYield) dividendYield = annualDividend / price;
+  if (price == null) {
+    throw new Error(`No price data found for "${ticker}".`);
   }
 
   const result = {
@@ -278,6 +254,20 @@ async function fetchTickerData(ticker) {
   return result;
 }
 
+// ── Batch fetcher with concurrency control (avoids Yahoo rate limiting) ──
+async function fetchInBatches(tickers, batchSize = 5, delayMs = 300) {
+  const results = [];
+  for (let i = 0; i < tickers.length; i += batchSize) {
+    const batch = tickers.slice(i, i + batchSize);
+    const batchResults = await Promise.allSettled(batch.map(fetchTickerData));
+    results.push(...batchResults);
+    if (i + batchSize < tickers.length) {
+      await new Promise(r => setTimeout(r, delayMs));
+    }
+  }
+  return results;
+}
+
 // ── Cache status endpoint ──
 app.get('/api/cache-status', async (req, res) => {
   const checks = await Promise.all(
@@ -286,13 +276,12 @@ app.get('/api/cache-status', async (req, res) => {
       return { ticker, cached: data !== null };
     })
   );
-  const cached = checks.filter(c => c.cached).map(c => c.ticker);
+  const cached  = checks.filter(c =>  c.cached).map(c => c.ticker);
   const missing = checks.filter(c => !c.cached).map(c => c.ticker);
   res.json({
     cachedCount: cached.length,
     missingCount: missing.length,
-    // Now 2 calls per ticker instead of 4
-    apiCallsSavedEstimate: cached.length * 2,
+    apiCallsSavedEstimate: cached.length, // 1 call per ticker with Yahoo
     cached,
     missing
   });
@@ -300,15 +289,13 @@ app.get('/api/cache-status', async (req, res) => {
 
 // ── Search endpoint ──
 app.get('/api/stock/:ticker', async (req, res) => {
-  if (!API_KEY) return res.status(500).json({ error: 'API key not configured.' });
-
   const ticker = req.params.ticker.toUpperCase().trim();
   if (!/^[A-Z]{1,6}$/.test(ticker)) {
     return res.status(400).json({ error: `Invalid ticker: ${ticker}` });
   }
 
   try {
-    const data = await fetchTickerData(ticker);
+    const data   = await fetchTickerData(ticker);
     const safety = calcSafetyScore(data);
     res.json({ ...data, safety });
   } catch (err) {
@@ -319,15 +306,11 @@ app.get('/api/stock/:ticker', async (req, res) => {
 
 // ── Top 50 endpoint ──
 app.get('/api/top10', async (req, res) => {
-  if (!API_KEY) return res.status(500).json({ error: 'API key not configured.' });
-
   const cachedTop50 = await cacheGet('__top50__');
   if (cachedTop50) return res.json(cachedTop50);
 
   try {
-    const results = await Promise.allSettled(
-      DIVIDEND_ARISTOCRATS.map(ticker => fetchTickerData(ticker))
-    );
+    const results = await fetchInBatches(DIVIDEND_ARISTOCRATS);
 
     const valid = results
       .filter(r => r.status === 'fulfilled' && r.value.dividendYield > 0)
@@ -347,20 +330,16 @@ app.get('/api/top10', async (req, res) => {
 
 // ── Scores endpoint ──
 app.get('/api/scores', async (req, res) => {
-  if (!API_KEY) return res.status(500).json({ error: 'API key not configured.' });
-
   const cachedScores = await cacheGet('__scores__');
   if (cachedScores) return res.json(cachedScores);
 
   try {
-    const results = await Promise.allSettled(
-      DIVIDEND_ARISTOCRATS.map(ticker => fetchTickerData(ticker))
-    );
+    const results = await fetchInBatches(DIVIDEND_ARISTOCRATS);
 
     const scored = results
       .filter(r => r.status === 'fulfilled')
       .map(r => {
-        const data = r.value;
+        const data   = r.value;
         const safety = calcSafetyScore(data);
         return { ...data, safety };
       })

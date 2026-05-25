@@ -250,6 +250,16 @@ app.get('/api/scores', async (req, res) => {
   }
 });
 
+// ── TEMP: Test FMP screener endpoint ──
+app.get('/api/test-screener', async (req, res) => {
+  const url = `https://financialmodelingprep.com/stable/company-screener?dividendMoreThan=2&betaLowerThan=2&country=US&exchange=NYSE,NASDAQ&limit=20&apikey=${API_KEY}`;
+  console.log('Testing screener URL:', url);
+  const response = await fetch(url);
+  const data = await response.json();
+  console.log('Screener result:', JSON.stringify(data).slice(0, 500));
+  res.json(data);
+});
+
 app.listen(PORT, () => {
   console.log(`Yield Scout running at http://localhost:${PORT}`);
 });

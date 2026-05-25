@@ -6,14 +6,14 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3000;
-const API_KEY = process.env.FMP_API_KEY;
+const API_KEY = process.env.TD_API_KEY;          // Twelve Data key
 const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
 
-console.log('API KEY loaded:', API_KEY ? 'YES' : 'NO');
+console.log('Twelve Data API KEY loaded:', API_KEY ? 'YES' : 'NO');
 console.log('Redis loaded:', REDIS_URL ? 'YES' : 'NO');
 
-if (!API_KEY) console.warn('Warning: FMP_API_KEY environment variable is not set.');
+if (!API_KEY) console.warn('Warning: TD_API_KEY environment variable is not set.');
 if (!REDIS_URL) console.warn('Warning: UPSTASH_REDIS_REST_URL is not set — falling back to in-memory cache.');
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -22,7 +22,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 const CACHE_TTL_SECONDS = 24 * 60 * 60; // 24 hours
 
 // ── Redis Cache (Upstash REST API) ──
-// Uses Upstash's simple HTTP REST API — no extra npm package needed
 async function redisSet(key, value) {
   try {
     const res = await fetch(`${REDIS_URL}/set/${encodeURIComponent(key)}`, {
@@ -31,7 +30,6 @@ async function redisSet(key, value) {
         Authorization: `Bearer ${REDIS_TOKEN}`,
         'Content-Type': 'application/json'
       },
-      // EX sets expiry in seconds — data auto-deletes after 24hrs
       body: JSON.stringify({ value: JSON.stringify(value), ex: CACHE_TTL_SECONDS })
     });
     const data = await res.json();
@@ -47,10 +45,7 @@ async function redisGet(key) {
       headers: { Authorization: `Bearer ${REDIS_TOKEN}` }
     });
     const data = await res.json();
-    if (data.result == null) {
-      console.log(`[redis] MISS ${key}`);
-      return null;
-    }
+    if (data.result == null) { console.log(`[redis] MISS ${key}`); return null; }
     console.log(`[redis] HIT ${key}`);
     return JSON.parse(data.result);
   } catch (err) {
@@ -60,7 +55,6 @@ async function redisGet(key) {
 }
 
 // ── In-memory fallback cache ──
-// Used if Redis env vars are not set
 const memCache = new Map();
 
 async function cacheSet(key, value) {
@@ -198,70 +192,94 @@ function calcSafetyScore(data) {
   return { score: Math.round(score), tier, tierClass, breakdown };
 }
 
+// ── Twelve Data base URL ──
+const TD = 'https://api.twelvedata.com';
+
 // ── Fetch all data for one ticker ──
-// Checks Redis first — only calls FMP if data is missing or expired
+// Uses only 2 API calls per ticker (vs 4 with FMP):
+//   1. /statistics  → beta, EPS, payout ratio, sector, price, dividend yield, company name
+//   2. /dividends   → recent dividend amount (for annualDividend calculation)
 async function fetchTickerData(ticker) {
   const cached = await cacheGet(`stock:${ticker}`);
   if (cached) return cached;
 
-  console.log(`[fetch] Calling FMP for ${ticker}`);
+  console.log(`[fetch] Calling Twelve Data for ${ticker}`);
 
-  const [quoteRes, divRes, profileRes, metricsRes] = await Promise.all([
-    fetch(`https://financialmodelingprep.com/stable/quote?symbol=${ticker}&apikey=${API_KEY}`),
-    fetch(`https://financialmodelingprep.com/stable/dividends?symbol=${ticker}&apikey=${API_KEY}`),
-    fetch(`https://financialmodelingprep.com/stable/profile?symbol=${ticker}&apikey=${API_KEY}`),
-    fetch(`https://financialmodelingprep.com/stable/key-metrics-ttm?symbol=${ticker}&apikey=${API_KEY}`)
+  const [statsRes, divRes] = await Promise.all([
+    fetch(`${TD}/statistics?symbol=${ticker}&apikey=${API_KEY}`),
+    fetch(`${TD}/dividends?symbol=${ticker}&range=3m&apikey=${API_KEY}`)
   ]);
 
-  const [quoteData, divData, profileData, metricsData] = await Promise.all([
-    quoteRes.json(),
-    divRes.json(),
-    profileRes.json(),
-    metricsRes.json()
+  const [statsData, divData] = await Promise.all([
+    statsRes.json(),
+    divRes.json()
   ]);
 
-  if (!quoteData || quoteData.length === 0) {
-    throw new Error(`Ticker "${ticker}" not found.`);
+  // Twelve Data returns { status: 'error' } for unknown tickers
+  if (statsData.status === 'error' || !statsData.statistics) {
+    throw new Error(`Ticker "${ticker}" not found or no data available.`);
   }
 
-  const quote = quoteData[0];
-  const profile = profileData?.[0] || {};
-  const metrics = Array.isArray(metricsData) && metricsData.length > 0 ? metricsData[0] : (metricsData || {});
-  const price = quote.price;
-  const companyName = quote.name || profile.companyName || ticker;
+  const stats = statsData.statistics;
+  const valuation = stats.valuations_metrics || {};
+  const stock = stats.stock_statistics || {};
+  const dividends = stats.dividends_and_splits || {};
+  const financials = stats.financials || {};
 
-  const recentDiv = Array.isArray(divData) && divData.length > 0 ? divData[0] : null;
-  const quarterlyDiv = recentDiv?.dividend ?? recentDiv?.adjDividend ?? null;
-  const annualDividend = quarterlyDiv ? quarterlyDiv * 4 : null;
-  const dividendYield = annualDividend && price ? annualDividend / price : null;
-
-  const beta = profile.beta ?? quote.beta ?? null;
-  const earningsYield = metrics.earningsYieldTTM ?? null;
-  const eps = earningsYield != null && price ? earningsYield * price : (quote.eps ?? null);
-
-  let payoutRatio = null;
-  if (annualDividend != null && eps != null && eps > 0) {
-    payoutRatio = annualDividend / eps;
-  } else if (profile.payoutRatio != null) {
-    payoutRatio = profile.payoutRatio;
+  // Price: prefer from statistics, fall back to a quote call if missing
+  let price = parseFloat(stock.price) || null;
+  if (!price) {
+    // Fallback: one extra call for price only (rare edge case)
+    const qRes = await fetch(`${TD}/price?symbol=${ticker}&apikey=${API_KEY}`);
+    const qData = await qRes.json();
+    price = parseFloat(qData.price) || null;
   }
 
-  const sector = profile.sector || null;
+  const companyName = statsData.name || ticker;
+  const sector = statsData.sector || null;
+
+  // EPS (trailing twelve months)
+  const eps = parseFloat(financials.eps_ttm) || parseFloat(valuation.eps) || null;
+
+  // Beta
+  const beta = parseFloat(stock.beta) || null;
+
+  // Payout ratio from statistics (already a decimal, e.g. 0.65 = 65%)
+  const payoutRatioRaw = parseFloat(dividends.payout_ratio) || null;
+  const payoutRatio = payoutRatioRaw;
+
+  // Dividend yield from statistics (decimal)
+  let dividendYield = parseFloat(dividends.forward_annual_dividend_yield) || null;
+
+  // Annual dividend amount from statistics
+  let annualDividend = parseFloat(dividends.forward_annual_dividend_rate) || null;
+
+  // Fill in from recent dividends history if statistics fields are missing
+  if ((!annualDividend || !dividendYield) && divData.dividends && divData.dividends.length > 0) {
+    const recent = divData.dividends[0];
+    const quarterlyAmt = parseFloat(recent.amount) || null;
+    if (quarterlyAmt && !annualDividend) annualDividend = quarterlyAmt * 4;
+    if (annualDividend && price && !dividendYield) dividendYield = annualDividend / price;
+  }
 
   const result = {
-    ticker, companyName, price, annualDividend, dividendYield,
-    payoutRatio, beta, eps, sector
+    ticker,
+    companyName,
+    price,
+    annualDividend,
+    dividendYield,
+    payoutRatio,
+    beta,
+    eps,
+    sector
   };
 
-  // Store in Redis — survives server restarts
   await cacheSet(`stock:${ticker}`, result);
-
   return result;
 }
 
 // ── Cache status endpoint ──
 app.get('/api/cache-status', async (req, res) => {
-  // Check which aristocrats are currently cached in Redis
   const checks = await Promise.all(
     DIVIDEND_ARISTOCRATS.map(async ticker => {
       const data = await cacheGet(`stock:${ticker}`);
@@ -273,7 +291,8 @@ app.get('/api/cache-status', async (req, res) => {
   res.json({
     cachedCount: cached.length,
     missingCount: missing.length,
-    apiCallsSavedEstimate: cached.length * 4,
+    // Now 2 calls per ticker instead of 4
+    apiCallsSavedEstimate: cached.length * 2,
     cached,
     missing
   });

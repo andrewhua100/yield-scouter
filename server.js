@@ -10,9 +10,6 @@ const PORT = process.env.PORT || 3000;
 const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
 
-// Suppress yahoo-finance2 validation noise
-yahooFinance.setGlobalConfig({ validation: { logErrors: false } });
-
 console.log('Yahoo Finance: ready (no API key required)');
 console.log('Redis loaded:', REDIS_URL ? 'YES' : 'NO');
 

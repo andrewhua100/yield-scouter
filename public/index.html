@@ -742,7 +742,7 @@
   <div class="wrapper">
     <div class="page-header">
       <h2 class="page-title">Yield vs. <span>Safety</span></h2>
-      <p class="page-subtitle">Every Dividend Aristocrat plotted by yield and safety score. The top-left zone is the sweet spot — high safety, healthy yield. Bottom-right is the yield trap danger zone.</p>
+      <p class="page-subtitle">Every Dividend Aristocrat plotted by yield and safety score. Green shading marks the sweet spot — 3–8% yield with a safety score of 70 or above. Red shading marks the yield trap zone — high yield but low safety.</p>
     </div>
     <div id="scatter-output">
       <div class="state-box">
@@ -1778,24 +1778,41 @@
           const ctx = chart.ctx;
           const xScale = chart.scales.x;
           const yScale = chart.scales.y;
-          const x1 = xScale.getPixelForValue(3);
-          const x2 = xScale.getPixelForValue(8);
-          const y1 = yScale.getPixelForValue(100);
-          const y2 = yScale.getPixelForValue(70);
-          const w  = x2 - x1;
-          const h  = y2 - y1;
+
+          // Sweet spot: yield 3–8%, safety ≥70
+          const sx1 = xScale.getPixelForValue(3);
+          const sx2 = xScale.getPixelForValue(8);
+          const sy1 = yScale.getPixelForValue(100);
+          const sy2 = yScale.getPixelForValue(70);
           ctx.save();
-          ctx.fillStyle = 'rgba(74,222,128,0.05)';
-          ctx.fillRect(x1, y1, w, h);
-          ctx.strokeStyle = 'rgba(74,222,128,0.25)';
+          ctx.fillStyle = 'rgba(74,222,128,0.07)';
+          ctx.fillRect(sx1, sy1, sx2 - sx1, sy2 - sy1);
+          ctx.strokeStyle = 'rgba(74,222,128,0.18)';
           ctx.lineWidth = 1;
           ctx.setLineDash([4, 4]);
-          ctx.strokeRect(x1, y1, w, h);
+          ctx.strokeRect(sx1, sy1, sx2 - sx1, sy2 - sy1);
           ctx.setLineDash([]);
           ctx.font = "500 10px 'DM Mono', monospace";
           ctx.fillStyle = 'rgba(74,222,128,0.5)';
           ctx.textAlign = 'left';
-          ctx.fillText('◆ SWEET SPOT', x1 + 6, y1 + 14);
+          ctx.fillText('◆ SWEET SPOT', sx1 + 6, sy1 + 14);
+
+          // Danger zone: yield >8%, safety <40
+          const dx1 = xScale.getPixelForValue(8);
+          const dx2 = xScale.getPixelForValue(xScale.max);
+          const dy1 = yScale.getPixelForValue(40);
+          const dy2 = yScale.getPixelForValue(0);
+          ctx.fillStyle = 'rgba(248,113,113,0.06)';
+          ctx.fillRect(dx1, dy1, dx2 - dx1, dy2 - dy1);
+          ctx.strokeStyle = 'rgba(248,113,113,0.15)';
+          ctx.lineWidth = 1;
+          ctx.setLineDash([4, 4]);
+          ctx.strokeRect(dx1, dy1, dx2 - dx1, dy2 - dy1);
+          ctx.setLineDash([]);
+          ctx.fillStyle = 'rgba(248,113,113,0.45)';
+          ctx.textAlign = 'right';
+          ctx.fillText('⚠ YIELD TRAP', dx2 - 6, dy2 - 8);
+
           ctx.restore();
         }
       }]

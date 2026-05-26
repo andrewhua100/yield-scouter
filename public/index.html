@@ -1674,10 +1674,19 @@
       return { x: parseFloat((s.dividendYield * 100).toFixed(2)), y: s.safety.score, ticker: s.ticker, name: s.companyName };
     }
 
+    // Deduplicate: each ticker goes into exactly one tier bucket
+    const seen = new Set();
+    function dedup(arr) {
+      return arr.filter(s => { if (seen.has(s.ticker)) return false; seen.add(s.ticker); return true; });
+    }
+    const safeDd     = dedup(safe);
+    const moderateDd = dedup(moderate);
+    const riskyDd    = dedup(risky);
+
     const datasets = [
-      { label: 'Safe',     data: safe.map(toPoint),     backgroundColor: 'rgba(74,222,128,0.75)',  borderColor: '#4ade80', borderWidth: 1.5, pointRadius: 7, pointHoverRadius: 10 },
-      { label: 'Moderate', data: moderate.map(toPoint), backgroundColor: 'rgba(250,204,21,0.75)',  borderColor: '#facc15', borderWidth: 1.5, pointRadius: 7, pointHoverRadius: 10 },
-      { label: 'Risky',    data: risky.map(toPoint),    backgroundColor: 'rgba(248,113,113,0.75)', borderColor: '#f87171', borderWidth: 1.5, pointRadius: 7, pointHoverRadius: 10 },
+      { label: 'Safe',     data: safeDd.map(toPoint),     backgroundColor: 'rgba(74,222,128,0.75)',  borderColor: '#4ade80', borderWidth: 1.5, pointRadius: 7, pointHoverRadius: 10 },
+      { label: 'Moderate', data: moderateDd.map(toPoint), backgroundColor: 'rgba(250,204,21,0.75)',  borderColor: '#facc15', borderWidth: 1.5, pointRadius: 7, pointHoverRadius: 10 },
+      { label: 'Risky',    data: riskyDd.map(toPoint),    backgroundColor: 'rgba(248,113,113,0.75)', borderColor: '#f87171', borderWidth: 1.5, pointRadius: 7, pointHoverRadius: 10 },
     ];
 
     const allYields = [...safe, ...moderate, ...risky].map(s => s.dividendYield * 100);
@@ -1693,6 +1702,8 @@
         plugins: {
           legend: { display: false },
           tooltip: {
+            mode: 'nearest',
+            intersect: true,
             backgroundColor: '#111118',
             borderColor: '#1e1e2e',
             borderWidth: 1,

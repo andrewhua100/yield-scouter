@@ -558,6 +558,60 @@
   }
   .refresh-btn:hover { background: var(--border); color: var(--text); transform: none; }
 
+  .scatter-chart-wrap {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 32px;
+    position: relative;
+  }
+  .scatter-legend {
+    display: flex; gap: 20px; flex-wrap: wrap;
+    margin-bottom: 24px; align-items: center;
+  }
+  .scatter-legend-item {
+    display: flex; align-items: center; gap: 7px;
+    font-family: 'DM Mono', monospace; font-size: 11px;
+    letter-spacing: 0.06em; color: var(--muted);
+  }
+  .scatter-legend-dot {
+    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+  }
+  .scatter-quadrant-label {
+    position: absolute; font-family: 'DM Mono', monospace;
+    font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+    opacity: 0.35; pointer-events: none;
+  }
+  .scatter-stats {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px; margin-top: 28px;
+  }
+  .scatter-stat {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+  }
+  .scatter-stat-label {
+    font-family: 'DM Mono', monospace; font-size: 10px;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 6px;
+  }
+  .scatter-stat-value {
+    font-size: 22px; font-weight: 500; color: var(--text);
+  }
+  .scatter-stat-sub {
+    font-size: 11px; color: var(--muted); margin-top: 2px;
+  }
+  .scatter-filter-row {
+    display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px;
+  }
+  .scatter-filter-btn {
+    font-family: 'DM Mono', monospace; font-size: 10px;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 6px 14px; border-radius: 20px;
+    border: 1px solid var(--border); background: transparent;
+    color: var(--muted); cursor: pointer; transition: all 0.15s;
+  }
+  .scatter-filter-btn:hover { border-color: var(--muted); color: var(--text); }
+  .scatter-filter-btn.active { background: var(--accent); border-color: var(--accent); color: #0a0a0f; }
+
   @keyframes fadeUp {
     from { opacity: 0; transform: translateY(16px); }
     to   { opacity: 1; transform: translateY(0); }
@@ -577,6 +631,7 @@
   <button class="nav-tab" onclick="showPage('search')">Search</button>
   <button class="nav-tab" onclick="showPage('top50')">Top 50</button>
   <button class="nav-tab" onclick="showPage('scores')">Safety Scores</button>
+  <button class="nav-tab" onclick="showPage('scatter')">Yield vs. Safety</button>
 </nav>
 
 <!-- HOME -->
@@ -677,6 +732,24 @@
         <div class="state-title">Ready to score</div>
         <p>Click below to calculate live Safety Scores.</p>
         <button onclick="loadScores()">Calculate Scores</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- YIELD VS SAFETY SCATTER -->
+<div id="page-scatter" class="page">
+  <div class="wrapper">
+    <div class="page-header">
+      <h2 class="page-title">Yield vs. <span>Safety</span></h2>
+      <p class="page-subtitle">Every Dividend Aristocrat plotted by yield and safety score. The top-left zone is the sweet spot — high safety, healthy yield. Bottom-right is the yield trap danger zone.</p>
+    </div>
+    <div id="scatter-output">
+      <div class="state-box">
+        <span class="icon">📊</span>
+        <div class="state-title">Ready to plot</div>
+        <p>Click below to load live data and generate the chart.</p>
+        <button onclick="loadScatter()">Generate Chart</button>
       </div>
     </div>
   </div>
@@ -863,15 +936,17 @@
   // ── Navigation ──
   let top50Loaded = false;
   let scoresLoaded = false;
+  let scatterLoaded = false;
 
   function showPage(name) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
     document.getElementById('page-' + name).classList.add('active');
-    const idx = { home: 0, search: 1, top50: 2, scores: 3, 'safety-guide': -1, 'stock-detail': -1 }[name];
+    const idx = { home: 0, search: 1, top50: 2, scores: 3, scatter: 4, 'safety-guide': -1, 'stock-detail': -1 }[name];
     if (idx >= 0) document.querySelectorAll('.nav-tab')[idx].classList.add('active');
     if (name === 'top50' && !top50Loaded) loadTop50();
     if (name === 'scores' && !scoresLoaded) loadScores();
+    if (name === 'scatter' && !scatterLoaded) loadScatter();
   }
 
   // ── Rating helpers ──
@@ -1485,7 +1560,6 @@
   function streamStockAnalysis(stock) {
     const bodyEl = document.getElementById('ai-analysis-body');
     const paragraphs = generateAnalysis(stock);
-    // Animate paragraphs in one by one for a dynamic feel
     bodyEl.innerHTML = '';
     paragraphs.forEach((text, i) => {
       const p = document.createElement('p');
@@ -1497,6 +1571,224 @@
       setTimeout(() => { p.style.opacity = ''; }, 50);
     });
   }
+
+  // ── Yield vs Safety Scatter ──
+  let _scatterChart = null;
+  let _scatterData  = [];
+  let _scatterFilter = 'all';
+
+  async function loadScatter() {
+    scatterLoaded = true;
+    const out = document.getElementById('scatter-output');
+    out.innerHTML = `<div class="state-box"><div class="spinner"></div><div class="state-title">Loading data…</div><p>Fetching live scores for all Dividend Aristocrats.</p></div>`;
+
+    let stocks;
+    try {
+      const res = await fetch('/api/scores');
+      if (!res.ok) throw new Error('API error');
+      stocks = await res.json();
+    } catch(e) {
+      out.innerHTML = `<div class="state-box"><span class="icon">⚠️</span><div class="state-title">Failed to load</div><p>${e.message}</p><button onclick="loadScatter()">Retry</button></div>`;
+      scatterLoaded = false;
+      return;
+    }
+
+    _scatterData = stocks.filter(s => s.dividendYield > 0);
+    renderScatter(_scatterData);
+  }
+
+  function renderScatter(data) {
+    const safe     = data.filter(s => s.safety.score >= 70);
+    const moderate = data.filter(s => s.safety.score >= 40 && s.safety.score < 70);
+    const risky    = data.filter(s => s.safety.score < 40);
+
+    const avgYield = data.length ? (data.reduce((a,s) => a + s.dividendYield * 100, 0) / data.length).toFixed(1) : '—';
+    const avgScore = data.length ? Math.round(data.reduce((a,s) => a + s.safety.score, 0) / data.length) : '—';
+    const sweetSpot = data.filter(s => s.dividendYield * 100 >= 3 && s.dividendYield * 100 <= 8 && s.safety.score >= 70).length;
+
+    const out = document.getElementById('scatter-output');
+    out.innerHTML = `
+      <div class="scatter-stats" style="margin-bottom:24px">
+        <div class="scatter-stat">
+          <div class="scatter-stat-label">Stocks plotted</div>
+          <div class="scatter-stat-value">${data.length}</div>
+          <div class="scatter-stat-sub">with active dividends</div>
+        </div>
+        <div class="scatter-stat">
+          <div class="scatter-stat-label">Avg yield</div>
+          <div class="scatter-stat-value">${avgYield}%</div>
+          <div class="scatter-stat-sub">across all plotted stocks</div>
+        </div>
+        <div class="scatter-stat">
+          <div class="scatter-stat-label">Avg safety score</div>
+          <div class="scatter-stat-value">${avgScore}</div>
+          <div class="scatter-stat-sub">out of 100</div>
+        </div>
+        <div class="scatter-stat">
+          <div class="scatter-stat-label">Sweet spot</div>
+          <div class="scatter-stat-value" style="color:var(--safe)">${sweetSpot}</div>
+          <div class="scatter-stat-sub">safe + 3–8% yield</div>
+        </div>
+      </div>
+
+      <div class="scatter-chart-wrap">
+        <div class="scatter-filter-row">
+          <button class="scatter-filter-btn active" onclick="setScatterFilter('all', this)">All tiers</button>
+          <button class="scatter-filter-btn" onclick="setScatterFilter('safe', this)">Safe only</button>
+          <button class="scatter-filter-btn" onclick="setScatterFilter('moderate', this)">Moderate only</button>
+          <button class="scatter-filter-btn" onclick="setScatterFilter('risky', this)">Risky only</button>
+        </div>
+        <div class="scatter-legend">
+          <span class="scatter-legend-item"><span class="scatter-legend-dot" style="background:#4ade80"></span>Safe (≥70) — ${safe.length} stocks</span>
+          <span class="scatter-legend-item"><span class="scatter-legend-dot" style="background:#facc15"></span>Moderate (40–69) — ${moderate.length} stocks</span>
+          <span class="scatter-legend-item"><span class="scatter-legend-dot" style="background:#f87171"></span>Risky (&lt;40) — ${risky.length} stocks</span>
+        </div>
+        <div style="position:relative;width:100%;height:420px">
+          <canvas id="scatterCanvas" role="img" aria-label="Scatter plot of dividend yield versus safety score for Dividend Aristocrats. Each dot represents one stock, colored green for safe, yellow for moderate, and red for risky.">Dividend stocks plotted by yield and safety score.</canvas>
+        </div>
+        <p style="font-size:11px;color:var(--muted);margin-top:14px;font-family:'DM Mono',monospace;letter-spacing:0.04em">
+          Click any dot to view the full stock detail. Sweet spot = high safety + 3–8% yield (top-left cluster).
+        </p>
+      </div>`;
+
+    _buildScatterChart(safe, moderate, risky);
+  }
+
+  function setScatterFilter(tier, btn) {
+    _scatterFilter = tier;
+    document.querySelectorAll('.scatter-filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const filtered = tier === 'all' ? _scatterData :
+      _scatterData.filter(s =>
+        tier === 'safe'     ? s.safety.score >= 70 :
+        tier === 'moderate' ? s.safety.score >= 40 && s.safety.score < 70 :
+                              s.safety.score < 40
+      );
+    renderScatter(filtered);
+  }
+
+  function _buildScatterChart(safe, moderate, risky) {
+    if (_scatterChart) { _scatterChart.destroy(); _scatterChart = null; }
+
+    function toPoint(s) {
+      return { x: parseFloat((s.dividendYield * 100).toFixed(2)), y: s.safety.score, ticker: s.ticker, name: s.companyName };
+    }
+
+    const datasets = [
+      { label: 'Safe',     data: safe.map(toPoint),     backgroundColor: 'rgba(74,222,128,0.75)',  borderColor: '#4ade80', borderWidth: 1.5, pointRadius: 7, pointHoverRadius: 10 },
+      { label: 'Moderate', data: moderate.map(toPoint), backgroundColor: 'rgba(250,204,21,0.75)',  borderColor: '#facc15', borderWidth: 1.5, pointRadius: 7, pointHoverRadius: 10 },
+      { label: 'Risky',    data: risky.map(toPoint),    backgroundColor: 'rgba(248,113,113,0.75)', borderColor: '#f87171', borderWidth: 1.5, pointRadius: 7, pointHoverRadius: 10 },
+    ];
+
+    const allYields = [...safe, ...moderate, ...risky].map(s => s.dividendYield * 100);
+    const maxYield  = allYields.length ? Math.ceil(Math.max(...allYields)) + 1 : 16;
+
+    _scatterChart = new Chart(document.getElementById('scatterCanvas'), {
+      type: 'scatter',
+      data: { datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        layout: { padding: { top: 20, right: 20, bottom: 10, left: 10 } },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#111118',
+            borderColor: '#1e1e2e',
+            borderWidth: 1,
+            titleColor: '#e8e8f0',
+            bodyColor: '#666680',
+            padding: 12,
+            cornerRadius: 8,
+            callbacks: {
+              title: ctx => ctx[0].raw.ticker + ' — ' + ctx[0].raw.name,
+              label: ctx => [
+                '  Yield:  ' + ctx.raw.x.toFixed(2) + '%',
+                '  Safety: ' + ctx.raw.y + ' / 100',
+              ]
+            }
+          }
+        },
+        onClick(evt, elements) {
+          if (!elements.length) return;
+          const el = elements[0];
+          const point = _scatterChart.data.datasets[el.datasetIndex].data[el.index];
+          if (_stockRegistry[point.ticker]) {
+            showStockDetail(_stockRegistry[point.ticker]);
+          }
+        },
+        onHover(evt, elements) {
+          evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+        },
+        scales: {
+          x: {
+            title: { display: true, text: 'Dividend yield (%)', color: '#666680', font: { size: 12, family: "'DM Mono', monospace" } },
+            min: 0,
+            max: maxYield,
+            ticks: { color: '#666680', callback: v => v + '%', font: { size: 11 } },
+            grid: { color: 'rgba(255,255,255,0.04)' },
+            border: { color: 'rgba(255,255,255,0.08)' }
+          },
+          y: {
+            title: { display: true, text: 'Safety score', color: '#666680', font: { size: 12, family: "'DM Mono', monospace" } },
+            min: 0,
+            max: 100,
+            ticks: { color: '#666680', font: { size: 11 } },
+            grid: { color: 'rgba(255,255,255,0.04)' },
+            border: { color: 'rgba(255,255,255,0.08)' }
+          }
+        }
+      },
+      plugins: [{
+        id: 'tickerLabels',
+        afterDatasetsDraw(chart) {
+          const ctx = chart.ctx;
+          ctx.save();
+          ctx.font = "500 10px 'DM Mono', monospace";
+          ctx.textAlign = 'center';
+          const colors = { Safe: '#4ade80', Moderate: '#facc15', Risky: '#f87171' };
+          chart.data.datasets.forEach((ds, di) => {
+            const meta = chart.getDatasetMeta(di);
+            ds.data.forEach((point, i) => {
+              const el = meta.data[i];
+              if (!el) return;
+              const { x, y } = el.getProps(['x','y'], true);
+              ctx.fillStyle = colors[ds.label];
+              ctx.fillText(point.ticker, x, y - 11);
+            });
+          });
+          ctx.restore();
+        }
+      }, {
+        id: 'sweetSpotZone',
+        beforeDatasetsDraw(chart) {
+          const ctx = chart.ctx;
+          const xScale = chart.scales.x;
+          const yScale = chart.scales.y;
+          const x1 = xScale.getPixelForValue(3);
+          const x2 = xScale.getPixelForValue(8);
+          const y1 = yScale.getPixelForValue(100);
+          const y2 = yScale.getPixelForValue(70);
+          ctx.save();
+          ctx.fillStyle = 'rgba(74,222,128,0.04)';
+          ctx.strokeStyle = 'rgba(74,222,128,0.12)';
+          ctx.lineWidth = 1;
+          ctx.setLineDash([4, 4]);
+          ctx.beginPath();
+          ctx.rect(x1, y1, x2 - x1, y2 - y1);
+          ctx.fill();
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.font = "500 10px 'DM Mono', monospace";
+          ctx.fillStyle = 'rgba(74,222,128,0.4)';
+          ctx.textAlign = 'left';
+          ctx.fillText('SWEET SPOT', x1 + 6, y1 + 14);
+          ctx.restore();
+        }
+      }]
+    });
+  }
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 </body>
 </html>

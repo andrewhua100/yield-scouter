@@ -141,10 +141,12 @@ function calcSafetyScore(data) {
   // 2. Payout Ratio (25 points)
   let payoutScore = 0;
   if (payoutRatio == null) {
-    payoutScore = 10;
+    payoutScore = 10; // unknown — partial credit
   } else {
     const pct = payoutRatio > 1 ? payoutRatio : payoutRatio * 100;
-    if (isHighPayoutSector) {
+    if (pct === 0) {
+      payoutScore = 0; // no dividend paid — not a dividend stock
+    } else if (isHighPayoutSector) {
       if (pct <= 95) payoutScore = 25;
       else if (pct <= 110) payoutScore = 15;
       else payoutScore = 5;

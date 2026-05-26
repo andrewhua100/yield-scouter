@@ -358,15 +358,24 @@
     background: #1a1a28;
     border: 1px solid var(--border);
     border-radius: 12px;
-    padding: 16px;
+    padding: 20px;
     z-index: 9999;
     box-shadow: 0 8px 32px rgba(0,0,0,0.6);
     text-align: left;
     pointer-events: auto;
-    opacity: 0;
-    transition: opacity 0.15s;
+    display: none;
   }
-  .score-tooltip.visible { opacity: 1; }
+  .score-tooltip.visible { display: block; }
+  .tooltip-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 14px;
+  }
+  .tooltip-close {
+    background: none; border: none; color: var(--muted);
+    font-size: 18px; cursor: pointer; padding: 0 0 0 8px;
+    line-height: 1; transform: none;
+  }
+  .tooltip-close:hover { color: var(--text); background: none; transform: none; }
   .tooltip-learn-btn {
     display: block; width: 100%; margin-top: 14px;
     background: rgba(200,169,110,0.12); color: var(--accent);
@@ -376,6 +385,12 @@
     padding: 9px; cursor: pointer; transition: all 0.2s; text-align: center;
   }
   .tooltip-learn-btn:hover { background: rgba(200,169,110,0.22); border-color: var(--accent); transform: none; }
+  .score-badge { cursor: pointer; }
+  /* Backdrop to close tooltip when clicking outside */
+  .tooltip-backdrop {
+    display: none; position: fixed; inset: 0; z-index: 9998;
+  }
+  .tooltip-backdrop.visible { display: block; }
 
   /* ── Stock Detail page ── */
   .stock-detail-hero {
@@ -874,15 +889,31 @@
     return n != null && !isNaN(n) ? Number(n).toFixed(d) : '—';
   }
 
-  // ── Tooltip ──
+  // ── Tooltip (click-based) ──
   const tooltipEl = document.createElement('div');
   tooltipEl.className = 'score-tooltip';
   document.body.appendChild(tooltipEl);
 
-  // Store ref to current hovered stock for "Learn More"
-  let _tooltipStockData = null;
+  // Backdrop closes tooltip when clicking outside
+  const backdropEl = document.createElement('div');
+  backdropEl.className = 'tooltip-backdrop';
+  backdropEl.addEventListener('click', hideTooltip);
+  document.body.appendChild(backdropEl);
 
-  function showTooltip(event, badge) {
+  let _tooltipStockData = null;
+  let _activeBadge = null;
+
+  function toggleTooltip(event, badge) {
+    event.stopPropagation();
+    if (_activeBadge === badge && tooltipEl.classList.contains('visible')) {
+      hideTooltip();
+      return;
+    }
+    _activeBadge = badge;
+    _showTooltipContent(event, badge);
+  }
+
+  function _showTooltipContent(event, badge) {
     const safety = JSON.parse(decodeURIComponent(badge.dataset.safety));
     _tooltipStockData = badge.dataset.ticker ? _stockRegistry[badge.dataset.ticker] : null;
 
@@ -894,7 +925,7 @@
     }
 
     const factors = [
-      { label: 'Dividend Yield',    key: 'yield',  desc: 'Sweet spot is 3–8%. Very high yields can be a trap.' },
+      { label: 'Dividend Yield',    key: 'yield',  desc: 'Sweet spot is 3-8%. Very high yields can be a trap.' },
       { label: 'Payout Ratio',      key: 'payout', desc: 'Under 60% healthy. REITs/Utilities allowed higher.' },
       { label: 'Beta (Volatility)', key: 'beta',   desc: 'Lower = more stable. Under 0.8 is ideal for income.' },
       { label: 'EPS (Profit)',      key: 'eps',    desc: 'Positive EPS means the company can sustain dividends.' },
@@ -916,11 +947,14 @@
     }).join('');
 
     const learnMoreBtn = _tooltipStockData
-      ? `<button class="tooltip-learn-btn" onclick="openStockDetail()">View Full Analysis →</button>`
+      ? `<button class="tooltip-learn-btn" onclick="openStockDetail()">View Full Analysis</button>`
       : '';
 
     tooltipEl.innerHTML = `
-      <div class="tooltip-title">Safety Score Breakdown</div>
+      <div class="tooltip-header">
+        <div class="tooltip-title">Safety Score Breakdown</div>
+        <button class="tooltip-close" onclick="hideTooltip()">&#x2715;</button>
+      </div>
       ${rows}
       <div class="tooltip-total">
         <div class="tooltip-total-label">Total Score</div>
@@ -928,8 +962,20 @@
       </div>
       ${learnMoreBtn}`;
 
-    positionTooltip(event);
+    // Position anchored to the badge element, not mouse position
+    const rect = badge.getBoundingClientRect();
+    const margin = 8;
+    const tw = 300;
+    let x = rect.left + rect.width / 2 - tw / 2;
+    let y = rect.bottom + margin;
+    if (x < margin) x = margin;
+    if (x + tw > window.innerWidth - margin) x = window.innerWidth - tw - margin;
+    if (y + 320 > window.innerHeight) y = rect.top - 320 - margin;
+    tooltipEl.style.left = x + 'px';
+    tooltipEl.style.top  = y + 'px';
+
     tooltipEl.classList.add('visible');
+    backdropEl.classList.add('visible');
   }
 
   function openStockDetail() {
@@ -938,28 +984,11 @@
     showStockDetail(_tooltipStockData);
   }
 
-  function positionTooltip(event) {
-    const margin = 12;
-    const tw = 280, th = 220;
-    let x = event.clientX - tw / 2;
-    let y = event.clientY - th - margin;
-    if (x < margin) x = margin;
-    if (x + tw > window.innerWidth - margin) x = window.innerWidth - tw - margin;
-    if (y < margin) y = event.clientY + margin;
-    tooltipEl.style.left = x + 'px';
-    tooltipEl.style.top  = y + 'px';
-  }
-
-  let _hideTimer = null;
-  function scheduleHideTooltip() {
-    _hideTimer = setTimeout(() => tooltipEl.classList.remove('visible'), 400);
-  }
   function hideTooltip() {
-    clearTimeout(_hideTimer);
     tooltipEl.classList.remove('visible');
+    backdropEl.classList.remove('visible');
+    _activeBadge = null;
   }
-  tooltipEl.addEventListener('mouseenter', () => clearTimeout(_hideTimer));
-  tooltipEl.addEventListener('mouseleave', () => tooltipEl.classList.remove('visible'));
 
   // ── Stock registry — keyed by ticker so badge only needs to store ticker ──
   const _stockRegistry = {};
@@ -973,8 +1002,7 @@
       <span class="score-badge ${safety.tierClass}"
         data-safety="${safetyAttr}"
         data-ticker="${tickerAttr}"
-        onmouseenter="showTooltip(event, this)"
-        onmouseleave="scheduleHideTooltip()">
+        onclick="toggleTooltip(event, this)">
         ${safety.score}/100 · ${safety.tier}
       </span>`;
   }

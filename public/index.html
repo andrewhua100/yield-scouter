@@ -763,11 +763,12 @@
         </div>
       </div>
       <div class="guide-body">
-        The payout ratio is the percentage of earnings paid out as dividends. A company paying out more than it earns cannot sustain the dividend long-term. <strong>REITs and Utilities</strong> are granted relaxed thresholds because they are legally required (REITs) or structurally expected to distribute most of their income.
+        The payout ratio is the percentage of earnings paid out as dividends. A payout ratio of <strong>0% scores zero points</strong> — a company paying no dividend at all is not a dividend investment regardless of its other qualities. A company paying out more than it earns cannot sustain the dividend long-term. <strong>REITs and Utilities</strong> are granted relaxed thresholds because they are legally required (REITs) or structurally expected to distribute most of their income.
       </div>
       <table class="guide-table">
         <thead><tr><th>Payout Ratio</th><th>Points</th><th>Applies to</th></tr></thead>
         <tbody>
+          <tr><td>0%</td><td><span class="pts-pill pts-none">0 pts</span></td><td>All sectors — no dividend being paid</td></tr>
           <tr><td>≤ 60%</td><td><span class="pts-pill pts-full">25 pts</span></td><td>All sectors (normal)</td></tr>
           <tr><td>61% – 80%</td><td><span class="pts-pill pts-mid">15 pts</span></td><td>All sectors (normal)</td></tr>
           <tr><td>81% – 100%</td><td><span class="pts-pill pts-low">5 pts</span></td><td>All sectors (normal)</td></tr>
@@ -1380,6 +1381,8 @@
       p1 += `Payout ratio data is unavailable, so dividend coverage cannot be directly assessed from this figure alone.`;
     } else if (isNaN(payoutNum)) {
       p1 += `The payout ratio is reported as ${bd.payout.value}.`;
+    } else if (payoutNum === 0) {
+      p1 += `A payout ratio of 0% means the company is not currently distributing any of its earnings as dividends, which disqualifies it as an income investment despite any other strengths.`;
     } else if (isHighPayoutSector) {
       if (payoutNum <= 95) {
         p1 += `As a ${sector} company, a payout ratio of ${bd.payout.value} is entirely normal and well within the range that regulators and analysts consider healthy for this type of business.`;

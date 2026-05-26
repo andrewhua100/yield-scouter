@@ -352,13 +352,17 @@ async function fetchTickerData(ticker) {
     beta = await calcBetaFromHistory(ticker, cookie, crumb);
   }
 
-  // EPS (trailing twelve months)
-  const eps            = keyStats.trailingEps               ?? null;
+  // EPS: prefer forwardEps (analyst estimate, less distorted by one-time items),
+  // fall back to trailingEps (TTM) if forward is unavailable.
+  const forwardEps     = keyStats.forwardEps                ?? null;
+  const trailingEps    = keyStats.trailingEps               ?? null;
+  const eps            = forwardEps ?? trailingEps;
+  const epsType        = forwardEps != null ? 'forward' : (trailingEps != null ? 'trailing' : null);
 
   if (price == null) throw new Error(`No price data found for "${ticker}".`);
 
   const result = { ticker, companyName, price, annualDividend, dividendYield,
-                   payoutRatio, beta, eps, sector };
+                   payoutRatio, beta, eps, epsType, sector };
 
   await cacheSet(`stock:${ticker}`, result);
   return result;

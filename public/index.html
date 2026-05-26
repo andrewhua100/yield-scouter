@@ -929,7 +929,7 @@
       { label: 'Dividend Yield',    key: 'yield',  desc: 'Sweet spot is 3-8%. Very high yields can be a trap.' },
       { label: 'Payout Ratio',      key: 'payout', desc: 'Under 60% healthy. REITs/Utilities allowed higher.' },
       { label: 'Beta (Volatility)', key: 'beta',   desc: 'Lower = more stable. Under 0.8 is ideal for income.' },
-      { label: 'EPS (Profit)',      key: 'eps',    desc: 'Positive EPS means the company can sustain dividends.' },
+      { label: _tooltipStockData?.epsType === 'forward' ? 'EPS (Forward)' : 'EPS (TTM)', key: 'eps', desc: 'Positive EPS means the company can sustain dividends.' },
       { label: 'Sector',            key: 'sector', desc: 'Staples, utilities, and REITs are historically reliable.' },
     ];
 
@@ -1287,7 +1287,7 @@
       { label: 'Dividend Yield',    key: 'yield',  icon: '📈' },
       { label: 'Payout Ratio',      key: 'payout', icon: '💸' },
       { label: 'Beta (Volatility)', key: 'beta',   icon: '📉' },
-      { label: 'EPS (Profit)',      key: 'eps',    icon: '💰' },
+      { label: stock.epsType === 'forward' ? 'EPS (Forward)' : 'EPS (TTM)', key: 'eps', icon: '💰' },
       { label: 'Sector',            key: 'sector', icon: '🏭' },
     ];
 
@@ -1422,16 +1422,18 @@
     }
 
     // EPS sentence
+    const epsLabel = stock.epsType === 'forward' ? 'forward' : 'trailing twelve months';
+    const epsAbbr  = stock.epsType === 'forward' ? 'Fwd EPS' : 'EPS (TTM)';
     if (bd.eps.value === 'N/A') {
       p2 += `Earnings per share data is unavailable, making it difficult to assess how comfortably profits cover the dividend. `;
     } else if (epsNum > 5) {
-      p2 += `Earnings per share of ${bd.eps.value} (trailing twelve months) reflects strong profitability — the company is generating substantial income well above what it needs to fund the dividend. `;
+      p2 += `${epsAbbr} of ${bd.eps.value} (${epsLabel}) reflects strong profitability — the company is generating substantial income well above what it needs to fund the dividend. `;
     } else if (epsNum > 2) {
-      p2 += `EPS of ${bd.eps.value} shows solid profitability that reasonably supports the current dividend level. `;
+      p2 += `${epsAbbr} of ${bd.eps.value} (${epsLabel}) shows solid profitability that reasonably supports the current dividend level. `;
     } else if (epsNum > 0) {
-      p2 += `EPS of ${bd.eps.value} indicates the company is profitable, though the thin margins leave limited room for error if business conditions worsen. `;
+      p2 += `${epsAbbr} of ${bd.eps.value} (${epsLabel}) indicates the company is profitable, though the thin margins leave limited room for error if business conditions worsen. `;
     } else {
-      p2 += `With a negative EPS of ${bd.eps.value}, the company is currently losing money on a per-share basis. Paying a dividend from losses is a red flag that demands scrutiny of the balance sheet and cash flow. `;
+      p2 += `With a negative ${epsAbbr} of ${bd.eps.value} (${epsLabel}), the company is currently losing money on a per-share basis. Paying a dividend from losses is a red flag that demands scrutiny of the balance sheet and cash flow. `;
     }
 
     // Sector sentence

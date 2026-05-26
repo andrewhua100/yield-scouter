@@ -1773,29 +1773,41 @@
           ctx.restore();
         }
       }, {
-        id: 'sweetSpotZone',
+        id: 'quadrantLabels',
         beforeDatasetsDraw(chart) {
           const ctx = chart.ctx;
           const xScale = chart.scales.x;
           const yScale = chart.scales.y;
-          const x1 = xScale.getPixelForValue(3);
-          const x2 = xScale.getPixelForValue(8);
-          const y1 = yScale.getPixelForValue(100);
-          const y2 = yScale.getPixelForValue(70);
+          const midX = xScale.getPixelForValue(xScale.max / 2);
+          const midY = yScale.getPixelForValue(50);
+          const left  = xScale.left + 10;
+          const right = xScale.right - 10;
+          const top   = yScale.top + 14;
+          const bot   = yScale.bottom - 10;
+
           ctx.save();
-          ctx.fillStyle = 'rgba(74,222,128,0.04)';
-          ctx.strokeStyle = 'rgba(74,222,128,0.12)';
-          ctx.lineWidth = 1;
-          ctx.setLineDash([4, 4]);
-          ctx.beginPath();
-          ctx.rect(x1, y1, x2 - x1, y2 - y1);
-          ctx.fill();
-          ctx.stroke();
-          ctx.setLineDash([]);
           ctx.font = "500 10px 'DM Mono', monospace";
-          ctx.fillStyle = 'rgba(74,222,128,0.4)';
           ctx.textAlign = 'left';
-          ctx.fillText('SWEET SPOT', x1 + 6, y1 + 14);
+
+          // Top-left: sweet spot
+          ctx.fillStyle = 'rgba(74,222,128,0.35)';
+          ctx.fillText('◆ SWEET SPOT', left, top);
+
+          // Top-right: high yield, high safety (rare)
+          ctx.textAlign = 'right';
+          ctx.fillStyle = 'rgba(250,204,21,0.25)';
+          ctx.fillText('HIGH YIELD / HIGH SAFETY', right, top);
+
+          // Bottom-left: low yield, low safety
+          ctx.textAlign = 'left';
+          ctx.fillStyle = 'rgba(255,255,255,0.1)';
+          ctx.fillText('LOW YIELD / LOW SAFETY', left, bot);
+
+          // Bottom-right: yield trap danger zone
+          ctx.textAlign = 'right';
+          ctx.fillStyle = 'rgba(248,113,113,0.3)';
+          ctx.fillText('⚠ YIELD TRAP ZONE', right, bot);
+
           ctx.restore();
         }
       }]

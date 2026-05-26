@@ -884,7 +884,7 @@
 
   function showTooltip(event, badge) {
     const safety = JSON.parse(decodeURIComponent(badge.dataset.safety));
-    _tooltipStockData = badge.dataset.stock ? JSON.parse(decodeURIComponent(badge.dataset.stock)) : null;
+    _tooltipStockData = badge.dataset.ticker ? _stockRegistry[badge.dataset.ticker] : null;
 
     function barColor(s, max) {
       const ratio = s / max;
@@ -952,7 +952,7 @@
 
   let _hideTimer = null;
   function scheduleHideTooltip() {
-    _hideTimer = setTimeout(() => tooltipEl.classList.remove('visible'), 180);
+    _hideTimer = setTimeout(() => tooltipEl.classList.remove('visible'), 400);
   }
   function hideTooltip() {
     clearTimeout(_hideTimer);
@@ -961,14 +961,18 @@
   tooltipEl.addEventListener('mouseenter', () => clearTimeout(_hideTimer));
   tooltipEl.addEventListener('mouseleave', () => tooltipEl.classList.remove('visible'));
 
+  // ── Stock registry — keyed by ticker so badge only needs to store ticker ──
+  const _stockRegistry = {};
+
   // ── Score badge ──
   function scoreBadge(safety, stockData) {
     const safetyAttr = encodeURIComponent(JSON.stringify(safety));
-    const stockAttr  = stockData ? encodeURIComponent(JSON.stringify(stockData)) : '';
+    if (stockData) _stockRegistry[stockData.ticker] = stockData;
+    const tickerAttr = stockData ? stockData.ticker : '';
     return `
       <span class="score-badge ${safety.tierClass}"
         data-safety="${safetyAttr}"
-        data-stock="${stockAttr}"
+        data-ticker="${tickerAttr}"
         onmouseenter="showTooltip(event, this)"
         onmouseleave="scheduleHideTooltip()">
         ${safety.score}/100 · ${safety.tier}

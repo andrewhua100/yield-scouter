@@ -164,8 +164,9 @@ function calcSafetyScore(data) {
   score += payoutScore;
 
   // 3. Beta / Volatility (20 points)
+  // null means both Yahoo and the calculated fallback returned nothing
   let betaScore = 0;
-  if (beta == null) betaScore = 10;
+  if (beta == null) betaScore = 0;
   else if (beta <= 0.5) betaScore = 20;
   else if (beta <= 0.8) betaScore = 17;
   else if (beta <= 1.0) betaScore = 13;
@@ -246,6 +247,66 @@ const YF_HEADERS = () => ({
   'Referer': 'https://finance.yahoo.com'
 });
 
+// ── Calculate beta from 1yr price history when Yahoo doesn't provide it ──
+async function calcBetaFromHistory(ticker, cookie, crumb) {
+  try {
+    const to   = Math.floor(Date.now() / 1000);
+    const from = to - 365 * 24 * 60 * 60;
+
+    const qs = `interval=1d&period1=${from}&period2=${to}&crumb=${encodeURIComponent(crumb)}`;
+    const [stockRes, spxRes] = await Promise.all([
+      fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?${qs}`, {
+        headers: { ...YF_HEADERS(), 'Cookie': cookie }
+      }),
+      fetch(`https://query1.finance.yahoo.com/v8/finance/chart/%5EGSPC?${qs}`, {
+        headers: { ...YF_HEADERS(), 'Cookie': cookie }
+      })
+    ]);
+
+    const [stockData, spxData] = await Promise.all([stockRes.json(), spxRes.json()]);
+
+    const stockPrices = stockData?.chart?.result?.[0]?.indicators?.quote?.[0]?.close;
+    const spxPrices   = spxData?.chart?.result?.[0]?.indicators?.quote?.[0]?.close;
+
+    if (!stockPrices || !spxPrices || stockPrices.length < 30) {
+      console.log(`[beta] Not enough price history for ${ticker}`);
+      return null;
+    }
+
+    // Filter out null values (market holidays where one has data and the other doesn't)
+    const pairs = [];
+    const len = Math.min(stockPrices.length, spxPrices.length);
+    for (let i = 1; i < len; i++) {
+      if (stockPrices[i] != null && stockPrices[i-1] != null &&
+          spxPrices[i]   != null && spxPrices[i-1]   != null) {
+        pairs.push({
+          sr: (stockPrices[i] - stockPrices[i-1]) / stockPrices[i-1],
+          mr: (spxPrices[i]   - spxPrices[i-1])   / spxPrices[i-1]
+        });
+      }
+    }
+
+    if (pairs.length < 30) return null;
+
+    const meanS = pairs.reduce((a, p) => a + p.sr, 0) / pairs.length;
+    const meanM = pairs.reduce((a, p) => a + p.mr, 0) / pairs.length;
+
+    let cov = 0, varM = 0;
+    for (const p of pairs) {
+      cov  += (p.sr - meanS) * (p.mr - meanM);
+      varM += (p.mr - meanM) ** 2;
+    }
+
+    if (varM === 0) return null;
+    const beta = parseFloat((cov / varM).toFixed(2));
+    console.log(`[beta] Calculated beta for ${ticker}: ${beta} (from ${pairs.length} trading days)`);
+    return beta;
+  } catch (err) {
+    console.error(`[beta] Failed to calculate beta for ${ticker}:`, err.message);
+    return null;
+  }
+}
+
 // ── Fetch all data for one ticker via Yahoo Finance v10 API ──
 async function fetchTickerData(ticker) {
   const cached = await cacheGet(`stock:${ticker}`);
@@ -286,7 +347,14 @@ async function fetchTickerData(ticker) {
   const dividendYield  = summary.dividendYield              ?? null;
   const annualDividend = summary.trailingAnnualDividendRate ?? null;
   const payoutRatio    = summary.payoutRatio                ?? null;
-  const beta           = keyStats.beta ?? summary.beta      ?? null;
+  // Beta: prefer keyStats, fall back to summaryDetail, then calculate from history
+  let beta = keyStats.beta ?? summary.beta ?? null;
+  if (beta == null) {
+    console.log(`[beta] No beta from Yahoo for ${ticker}, calculating from price history...`);
+    beta = await calcBetaFromHistory(ticker, cookie, crumb);
+  }
+
+  // EPS (trailing twelve months)
   const eps            = keyStats.trailingEps               ?? null;
 
   if (price == null) throw new Error(`No price data found for "${ticker}".`);

@@ -1656,8 +1656,6 @@
 
   function setScatterFilter(tier, btn) {
     _scatterFilter = tier;
-    document.querySelectorAll('.scatter-filter-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
     const filtered = tier === 'all' ? _scatterData :
       _scatterData.filter(s =>
         tier === 'safe'     ? s.safety.score >= 70 :
@@ -1665,6 +1663,10 @@
                               s.safety.score < 40
       );
     renderScatter(filtered);
+    // Re-apply active class after renderScatter rebuilds the buttons
+    document.querySelectorAll('.scatter-filter-btn').forEach(b => {
+      b.classList.toggle('active', b.getAttribute('onclick').includes("'" + tier + "'"));
+    });
   }
 
   function _buildScatterChart(safe, moderate, risky) {

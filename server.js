@@ -33,17 +33,15 @@ async function redisSet(key, value) {
   try {
     const base = (REDIS_URL || '').trim().replace(/\/$/, '');
     const serialized = JSON.stringify(value);
-    // Upstash REST pipeline: always works regardless of value content
-    const res = await fetch(base + '/pipeline', {
+    // Upstash REST: POST /set/key/value?EX=ttl
+    // Value goes in the URL path, encoded. Works for any content including JSON.
+    const url = `${base}/set/${encodeURIComponent(key)}/${encodeURIComponent(serialized)}?EX=${CACHE_TTL_SECONDS}`;
+    const res = await fetch(url, {
       method: 'POST',
-      headers: redisHeaders(),
-      body: JSON.stringify([
-        ['SET', key, serialized],
-        ['EXPIRE', key, CACHE_TTL_SECONDS]
-      ])
+      headers: redisHeaders()
     });
     const text = await res.text();
-    console.log(`[redis] SET ${key} raw:`, text.slice(0, 80));
+    console.log(`[redis] SET ${key}:`, text.slice(0, 60));
   } catch (err) {
     console.error(`[redis] SET error for ${key}:`, err.message);
   }

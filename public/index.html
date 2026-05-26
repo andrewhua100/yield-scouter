@@ -354,7 +354,7 @@
 
   .score-tooltip {
     position: fixed;
-    width: 280px;
+    width: 300px;
     background: #1a1a28;
     border: 1px solid var(--border);
     border-radius: 12px;
@@ -362,11 +362,105 @@
     z-index: 9999;
     box-shadow: 0 8px 32px rgba(0,0,0,0.6);
     text-align: left;
-    pointer-events: none;
+    pointer-events: auto;
     opacity: 0;
     transition: opacity 0.15s;
   }
   .score-tooltip.visible { opacity: 1; }
+  .tooltip-learn-btn {
+    display: block; width: 100%; margin-top: 14px;
+    background: rgba(200,169,110,0.12); color: var(--accent);
+    border: 1px solid rgba(200,169,110,0.3); border-radius: 7px;
+    font-family: 'DM Mono', monospace; font-size: 11px;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 9px; cursor: pointer; transition: all 0.2s; text-align: center;
+  }
+  .tooltip-learn-btn:hover { background: rgba(200,169,110,0.22); border-color: var(--accent); transform: none; }
+
+  /* ── Stock Detail page ── */
+  .stock-detail-hero {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 32px; margin-bottom: 20px;
+    animation: fadeUp 0.4s ease both;
+  }
+  .stock-detail-ticker {
+    font-family: 'DM Mono', monospace; font-size: 13px;
+    letter-spacing: 0.15em; color: var(--accent); margin-bottom: 6px;
+  }
+  .stock-detail-name {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(28px, 4vw, 42px); font-weight: 900;
+    line-height: 1.1; color: var(--text); margin-bottom: 20px;
+  }
+  .stock-meta-row {
+    display: flex; gap: 24px; flex-wrap: wrap;
+  }
+  .stock-meta-item { display: flex; flex-direction: column; gap: 3px; }
+  .stock-meta-label {
+    font-family: 'DM Mono', monospace; font-size: 10px;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+  }
+  .stock-meta-value {
+    font-family: 'DM Mono', monospace; font-size: 16px; color: var(--text);
+  }
+  .factor-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 14px; margin-bottom: 20px;
+  }
+  .factor-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px;
+    animation: fadeUp 0.4s ease both;
+  }
+  .factor-card-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 10px;
+  }
+  .factor-card-label {
+    font-family: 'DM Mono', monospace; font-size: 11px;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+  }
+  .factor-card-value {
+    font-family: 'DM Mono', monospace; font-size: 13px; color: var(--text);
+  }
+  .factor-bar-wrap {
+    height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-bottom: 8px;
+  }
+  .factor-bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+  .factor-card-pts {
+    font-size: 12px; color: var(--muted);
+  }
+  .ai-analysis-box {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 32px;
+    animation: fadeUp 0.4s 0.2s ease both;
+  }
+  .ai-analysis-header {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 20px;
+  }
+  .ai-analysis-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px; font-weight: 700; color: var(--text);
+  }
+  .ai-analysis-subtitle {
+    font-size: 12px; color: var(--muted); margin-top: 2px;
+  }
+  .ai-analysis-body {
+    font-size: 14px; color: var(--muted); line-height: 1.85;
+  }
+  .ai-analysis-body p { margin-bottom: 14px; }
+  .ai-analysis-body p:last-child { margin-bottom: 0; }
+  .ai-analysis-body strong { color: var(--text); font-weight: 500; }
+
+  .back-btn {
+    background: transparent; color: var(--muted);
+    border: 1px solid var(--border); border-radius: 7px;
+    font-family: 'DM Mono', monospace; font-size: 11px;
+    letter-spacing: 0.1em; padding: 8px 16px; cursor: pointer;
+    margin-bottom: 24px; display: inline-flex; align-items: center; gap: 6px;
+    transition: all 0.2s;
+  }
+  .back-btn:hover { color: var(--text); border-color: var(--muted); transform: none; }
 
   .tooltip-title {
     font-family: 'DM Mono', monospace;
@@ -573,6 +667,14 @@
   </div>
 </div>
 
+<!-- STOCK DETAIL -->
+<div id="page-stock-detail" class="page">
+  <div class="wrapper">
+    <button class="back-btn" id="detail-back-btn">← Back</button>
+    <div id="stock-detail-content"></div>
+  </div>
+</div>
+
 <!-- SAFETY GUIDE -->
 <div id="page-safety-guide" class="page">
   <div class="wrapper">
@@ -750,7 +852,7 @@
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
     document.getElementById('page-' + name).classList.add('active');
-    const idx = { home: 0, search: 1, top50: 2, scores: 3, 'safety-guide': -1 }[name];
+    const idx = { home: 0, search: 1, top50: 2, scores: 3, 'safety-guide': -1, 'stock-detail': -1 }[name];
     if (idx >= 0) document.querySelectorAll('.nav-tab')[idx].classList.add('active');
     if (name === 'top50' && !top50Loaded) loadTop50();
     if (name === 'scores' && !scoresLoaded) loadScores();
@@ -777,8 +879,12 @@
   tooltipEl.className = 'score-tooltip';
   document.body.appendChild(tooltipEl);
 
+  // Store ref to current hovered stock for "Learn More"
+  let _tooltipStockData = null;
+
   function showTooltip(event, badge) {
     const safety = JSON.parse(decodeURIComponent(badge.dataset.safety));
+    _tooltipStockData = badge.dataset.stock ? JSON.parse(decodeURIComponent(badge.dataset.stock)) : null;
 
     function barColor(s, max) {
       const ratio = s / max;
@@ -809,16 +915,27 @@
         </div>`;
     }).join('');
 
+    const learnMoreBtn = _tooltipStockData
+      ? `<button class="tooltip-learn-btn" onclick="openStockDetail()">View Full Analysis →</button>`
+      : '';
+
     tooltipEl.innerHTML = `
       <div class="tooltip-title">Safety Score Breakdown</div>
       ${rows}
       <div class="tooltip-total">
         <div class="tooltip-total-label">Total Score</div>
         <div class="tooltip-total-score">${safety.score}/100</div>
-      </div>`;
+      </div>
+      ${learnMoreBtn}`;
 
     positionTooltip(event);
     tooltipEl.classList.add('visible');
+  }
+
+  function openStockDetail() {
+    if (!_tooltipStockData) return;
+    hideTooltip();
+    showStockDetail(_tooltipStockData);
   }
 
   function positionTooltip(event) {
@@ -833,18 +950,27 @@
     tooltipEl.style.top  = y + 'px';
   }
 
+  let _hideTimer = null;
+  function scheduleHideTooltip() {
+    _hideTimer = setTimeout(() => tooltipEl.classList.remove('visible'), 180);
+  }
   function hideTooltip() {
+    clearTimeout(_hideTimer);
     tooltipEl.classList.remove('visible');
   }
+  tooltipEl.addEventListener('mouseenter', () => clearTimeout(_hideTimer));
+  tooltipEl.addEventListener('mouseleave', () => tooltipEl.classList.remove('visible'));
 
   // ── Score badge ──
-  function scoreBadge(safety) {
-    const dataAttr = encodeURIComponent(JSON.stringify(safety));
+  function scoreBadge(safety, stockData) {
+    const safetyAttr = encodeURIComponent(JSON.stringify(safety));
+    const stockAttr  = stockData ? encodeURIComponent(JSON.stringify(stockData)) : '';
     return `
       <span class="score-badge ${safety.tierClass}"
-        data-safety="${dataAttr}"
+        data-safety="${safetyAttr}"
+        data-stock="${stockAttr}"
         onmouseenter="showTooltip(event, this)"
-        onmouseleave="hideTooltip()">
+        onmouseleave="scheduleHideTooltip()">
         ${safety.score}/100 · ${safety.tier}
       </span>`;
   }
@@ -927,7 +1053,7 @@
             <td class="num">${hasDiv ? '$'+fmt(s.annualDividend,4) : '<span style="color:var(--muted)">None</span>'}</td>
             <td class="yield-cell ${rating}">${hasDiv ? (yld*100).toFixed(2)+'%' : '—'}</td>
             <td><span class="badge ${rating}">${hasDiv ? getRatingLabel(rating) : 'No Div'}</span></td>
-            <td>${s.safety ? scoreBadge(s.safety) : '<span style="color:var(--muted)">—</span>'}</td>
+            <td>${s.safety ? scoreBadge(s.safety, s) : '<span style="color:var(--muted)">—</span>'}</td>
           </tr>`;
       });
       html += `</tbody></table></div>`;
@@ -1080,7 +1206,7 @@
           <td class="ticker-cell">${s.ticker}<div class="company-name">${s.companyName}</div></td>
           <td class="num">$${fmt(s.price)}</td>
           <td class="num">${hasDiv ? (yld*100).toFixed(2)+'%' : '—'}</td>
-          <td>${scoreBadge(s.safety)}</td>
+          <td>${scoreBadge(s.safety, s)}</td>
         </tr>`;
     });
     html += `</tbody></table></div>`;
@@ -1098,6 +1224,242 @@
       runScreener();
     }
   });
+
+  // ── Stock Detail page ──
+  let _detailBackPage = 'scores';
+
+  // Track which page we came from for the back button
+  const _originalShowPage = showPage;
+
+  document.getElementById('detail-back-btn').addEventListener('click', () => {
+    showPage(_detailBackPage);
+  });
+
+  function barColor(s, max) {
+    const ratio = s / max;
+    if (ratio >= 0.75) return '#4ade80';
+    if (ratio >= 0.4)  return '#facc15';
+    return '#f87171';
+  }
+
+  async function showStockDetail(stock) {
+    _detailBackPage = document.querySelector('.page.active')?.id?.replace('page-', '') || 'scores';
+    showPage('stock-detail');
+
+    const safety = stock.safety;
+    const yld = stock.dividendYield;
+    const hasDiv = yld != null && yld > 0;
+
+    const factors = [
+      { label: 'Dividend Yield',    key: 'yield',  icon: '📈' },
+      { label: 'Payout Ratio',      key: 'payout', icon: '💸' },
+      { label: 'Beta (Volatility)', key: 'beta',   icon: '📉' },
+      { label: 'EPS (Profit)',      key: 'eps',    icon: '💰' },
+      { label: 'Sector',            key: 'sector', icon: '🏭' },
+    ];
+
+    const factorCards = factors.map((f, i) => {
+      const b = safety.breakdown[f.key];
+      const fillPct = Math.round((b.score / b.max) * 100);
+      const color = barColor(b.score, b.max);
+      return `
+        <div class="factor-card" style="animation-delay:${0.05 + i * 0.07}s">
+          <div class="factor-card-header">
+            <div class="factor-card-label">${f.icon} ${f.label}</div>
+            <div class="factor-card-value">${b.value}</div>
+          </div>
+          <div class="factor-bar-wrap">
+            <div class="factor-bar-fill" style="width:${fillPct}%;background:${color}"></div>
+          </div>
+          <div class="factor-card-pts">${b.score} / ${b.max} pts</div>
+        </div>`;
+    }).join('');
+
+    document.getElementById('stock-detail-content').innerHTML = `
+      <div class="stock-detail-hero">
+        <div class="stock-detail-ticker">${stock.ticker} · ${stock.sector || 'Unknown Sector'}</div>
+        <div class="stock-detail-name">${stock.companyName}</div>
+        <div class="stock-meta-row">
+          <div class="stock-meta-item">
+            <div class="stock-meta-label">Price</div>
+            <div class="stock-meta-value">$${fmt(stock.price)}</div>
+          </div>
+          <div class="stock-meta-item">
+            <div class="stock-meta-label">Annual Dividend</div>
+            <div class="stock-meta-value">${hasDiv ? '$' + fmt(stock.annualDividend, 4) : '—'}</div>
+          </div>
+          <div class="stock-meta-item">
+            <div class="stock-meta-label">Yield</div>
+            <div class="stock-meta-value">${hasDiv ? (yld * 100).toFixed(2) + '%' : '—'}</div>
+          </div>
+          <div class="stock-meta-item">
+            <div class="stock-meta-label">Safety Score</div>
+            <div class="stock-meta-value" style="color:var(--${safety.tierClass})">${safety.score}/100 · ${safety.tier}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="factor-grid">${factorCards}</div>
+
+      <div class="ai-analysis-box">
+        <div class="ai-analysis-header">
+          <div>
+            <div class="ai-analysis-title">Investment Analysis</div>
+            <div class="ai-analysis-subtitle">Based on this stock's live safety score data</div>
+          </div>
+        </div>
+        <div class="ai-analysis-body" id="ai-analysis-body">
+          <span class="spinner"></span> Generating analysis…
+        </div>
+      </div>`;
+
+    // Stream AI analysis
+    await streamStockAnalysis(stock);
+  }
+
+  function generateAnalysis(stock) {
+    const s = stock.safety;
+    const bd = s.breakdown;
+    const yldPct = stock.dividendYield ? (stock.dividendYield * 100).toFixed(2) : null;
+    const payoutNum = parseFloat(bd.payout.value);
+    const betaNum = parseFloat(bd.beta.value);
+    const epsNum = parseFloat(bd.eps.value.replace('$',''));
+    const sector = stock.sector || 'Unknown';
+    const isHighPayoutSector = ['reit','real estate','utilities','utility'].some(s => sector.toLowerCase().includes(s));
+
+    // ── Paragraph 1: Yield & Payout ──
+    let p1 = '';
+
+    // Yield sentence
+    if (!yldPct) {
+      p1 += `${stock.companyName} does not currently report a dividend yield, which limits its appeal for income investors. `;
+    } else if (parseFloat(yldPct) >= 3 && parseFloat(yldPct) <= 8) {
+      p1 += `${stock.companyName} offers a dividend yield of ${yldPct}%, which sits in the ideal range for income investors — high enough to generate meaningful income, but not so elevated that it signals distress. `;
+    } else if (parseFloat(yldPct) > 8 && parseFloat(yldPct) <= 12) {
+      p1 += `${stock.companyName} carries a dividend yield of ${yldPct}%, which is on the higher end and warrants closer scrutiny. Elevated yields can indicate the market has concerns about dividend sustainability, so the payout ratio becomes especially important here. `;
+    } else if (parseFloat(yldPct) > 12) {
+      p1 += `${stock.companyName}'s dividend yield of ${yldPct}% is unusually high, which is often a warning sign that the market is pricing in a dividend cut. Investors should treat this yield with caution until the fundamentals confirm it is sustainable. `;
+    } else {
+      p1 += `${stock.companyName} offers a modest dividend yield of ${yldPct}%, which provides limited income but may reflect a conservative, sustainable payout policy. `;
+    }
+
+    // Payout sentence
+    if (bd.payout.value === 'N/A') {
+      p1 += `Payout ratio data is unavailable, so dividend coverage cannot be directly assessed from this figure alone.`;
+    } else if (isNaN(payoutNum)) {
+      p1 += `The payout ratio is reported as ${bd.payout.value}.`;
+    } else if (isHighPayoutSector) {
+      if (payoutNum <= 95) {
+        p1 += `As a ${sector} company, a payout ratio of ${bd.payout.value} is entirely normal and well within the range that regulators and analysts consider healthy for this type of business.`;
+      } else if (payoutNum <= 110) {
+        p1 += `Its payout ratio of ${bd.payout.value} is slightly above 100%, which for a ${sector} is not unusual — these businesses often pay out more than GAAP earnings due to depreciation adjustments — but it is worth monitoring.`;
+      } else {
+        p1 += `The payout ratio of ${bd.payout.value} is elevated even by ${sector} standards, which raises questions about how long the current dividend level can be maintained.`;
+      }
+    } else {
+      if (payoutNum <= 60) {
+        p1 += `Its payout ratio of ${bd.payout.value} is conservative and healthy — the company is retaining most of its earnings, leaving plenty of room to sustain or grow the dividend even if earnings dip.`;
+      } else if (payoutNum <= 80) {
+        p1 += `With a payout ratio of ${bd.payout.value}, the company is distributing a meaningful portion of its earnings as dividends. This is manageable but leaves less buffer if earnings were to decline.`;
+      } else if (payoutNum <= 100) {
+        p1 += `A payout ratio of ${bd.payout.value} means the company is paying out the vast majority of its earnings as dividends, leaving very little cushion. Any earnings shortfall could put pressure on the dividend.`;
+      } else {
+        p1 += `The payout ratio of ${bd.payout.value} means the company is paying out more in dividends than it is earning, which is unsustainable long-term without earnings growth or balance sheet support.`;
+      }
+    }
+
+    // ── Paragraph 2: Stability — Beta, EPS, Sector ──
+    let p2 = '';
+
+    // Beta sentence
+    if (bd.beta.value === 'N/A') {
+      p2 += `Volatility data (beta) is not available for this stock. `;
+    } else if (betaNum <= 0.5) {
+      p2 += `With a beta of ${bd.beta.value}, ${stock.ticker} is exceptionally stable — it barely moves relative to the broader market, making it a calm, predictable holding for income investors who cannot stomach large drawdowns. `;
+    } else if (betaNum <= 0.8) {
+      p2 += `A beta of ${bd.beta.value} indicates ${stock.ticker} is a low-volatility stock that tends to hold its value better than the market during downturns — an important quality for investors relying on dividends rather than capital gains. `;
+    } else if (betaNum <= 1.0) {
+      p2 += `${stock.ticker}'s beta of ${bd.beta.value} is roughly in line with the market, meaning it will generally rise and fall with the S&P 500. This is acceptable but not the steadiness typically associated with classic dividend stocks. `;
+    } else if (betaNum <= 1.3) {
+      p2 += `A beta of ${bd.beta.value} means ${stock.ticker} is more volatile than the broader market, which is somewhat atypical for a dividend-focused holding. Price swings could be unsettling for income investors expecting stability. `;
+    } else {
+      p2 += `With a beta of ${bd.beta.value}, ${stock.ticker} is significantly more volatile than the market. This level of price swings is unusual for a dividend stock and adds meaningful risk beyond the dividend itself. `;
+    }
+
+    // EPS sentence
+    if (bd.eps.value === 'N/A') {
+      p2 += `Earnings per share data is unavailable, making it difficult to assess how comfortably profits cover the dividend. `;
+    } else if (epsNum > 5) {
+      p2 += `Earnings per share of ${bd.eps.value} (trailing twelve months) reflects strong profitability — the company is generating substantial income well above what it needs to fund the dividend. `;
+    } else if (epsNum > 2) {
+      p2 += `EPS of ${bd.eps.value} shows solid profitability that reasonably supports the current dividend level. `;
+    } else if (epsNum > 0) {
+      p2 += `EPS of ${bd.eps.value} indicates the company is profitable, though the thin margins leave limited room for error if business conditions worsen. `;
+    } else {
+      p2 += `With a negative EPS of ${bd.eps.value}, the company is currently losing money on a per-share basis. Paying a dividend from losses is a red flag that demands scrutiny of the balance sheet and cash flow. `;
+    }
+
+    // Sector sentence
+    const reliableSectors = ['consumer staples','utilities','real estate','reit','energy','healthcare','financials','communication services'];
+    const isReliable = reliableSectors.some(rs => sector.toLowerCase().includes(rs));
+    if (isReliable) {
+      p2 += `Operating in the ${sector} sector adds a layer of structural reliability — these businesses tend to generate consistent, recession-resistant cash flows that support dividend continuity through economic cycles.`;
+    } else if (sector !== 'Unknown') {
+      p2 += `The ${sector} sector does not carry the same defensive characteristics as utilities or consumer staples, so dividend sustainability depends more heavily on the company's individual earnings trajectory.`;
+    } else {
+      p2 += `Without confirmed sector data, the structural reliability of the business model cannot be assessed from sector alone.`;
+    }
+
+    // ── Paragraph 3: Bottom line ──
+    let p3 = '';
+    const score = s.score;
+
+    if (score >= 70) {
+      p3 += `Overall, ${stock.companyName} scores ${score}/100 — placing it firmly in the Safe tier. `;
+      if (yldPct && parseFloat(yldPct) >= 3) {
+        p3 += `The combination of a ${yldPct}% yield and strong underlying fundamentals makes it a solid candidate for income-focused portfolios, particularly for investors seeking reliability over maximum yield. `;
+      } else {
+        p3 += `While the yield is modest, the stability of the business makes it a dependable core holding for conservative income investors. `;
+      }
+      p3 += `The main thing to watch is whether earnings growth continues to support the payout ratio over time.`;
+    } else if (score >= 40) {
+      p3 += `${stock.companyName} scores ${score}/100, landing in the Moderate tier. `;
+      p3 += `It has meaningful strengths but also at least one area of concern — likely the ${
+        bd.payout.score < 15 ? 'elevated payout ratio' :
+        bd.beta.score < 10 ? 'higher-than-ideal volatility' :
+        bd.eps.score < 8 ? 'thin or negative earnings' :
+        bd.yield.score < 15 ? 'yield outside the ideal range' : 'sector risk profile'
+      }. It may suit investors comfortable with moderate risk who are willing to monitor the position closely and reinvest dividends to build a position over time.`;
+    } else {
+      p3 += `With a score of ${score}/100, ${stock.companyName} sits in the Risky tier. `;
+      p3 += `Multiple factors — `;
+      const issues = [];
+      if (bd.yield.score <= 5) issues.push('an extreme or negligible yield');
+      if (bd.payout.score === 0) issues.push('a payout ratio exceeding earnings');
+      if (bd.beta.score <= 4) issues.push('very high volatility');
+      if (bd.eps.score === 0) issues.push('negative earnings');
+      p3 += (issues.length ? issues.join(', ') : 'weak fundamentals across several metrics');
+      p3 += ` — combine to make the dividend vulnerable. This stock is better suited for investors who have done deep fundamental research and are comfortable with the possibility of a dividend reduction.`;
+    }
+
+    return [p1, p2, p3];
+  }
+
+  function streamStockAnalysis(stock) {
+    const bodyEl = document.getElementById('ai-analysis-body');
+    const paragraphs = generateAnalysis(stock);
+    // Animate paragraphs in one by one for a dynamic feel
+    bodyEl.innerHTML = '';
+    paragraphs.forEach((text, i) => {
+      const p = document.createElement('p');
+      p.textContent = text;
+      p.style.animationDelay = (i * 0.15) + 's';
+      p.style.animation = 'fadeUp 0.5s ease both';
+      p.style.opacity = '0';
+      bodyEl.appendChild(p);
+      setTimeout(() => { p.style.opacity = ''; }, 50);
+    });
+  }
 </script>
 </body>
 </html>

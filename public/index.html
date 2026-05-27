@@ -702,9 +702,10 @@
     </div>
     <div class="search-section">
       <div class="ticker-label">Search by ticker or company name</div>
-      <div class="input-row" style="position:relative">
-        <div style="position:relative;flex:1">
+      <div class="input-row">
+        <div style="position:relative;flex:1;min-width:0">
           <input type="text" id="tickerInput" placeholder="e.g. KO, Coca-Cola, Johnson…" autocomplete="off"
+            style="width:100%;box-sizing:border-box"
             oninput="onTickerInput(event)" onkeydown="onTickerKeydown(event)">
           <div id="tickerDropdown" style="
             display:none; position:absolute; top:calc(100% + 6px); left:0; right:0; z-index:999;

@@ -414,6 +414,46 @@ app.get('/api/cache-status', async (req, res) => {
   });
 });
 
+// ── Stock name search (autocomplete) ──
+app.get('/api/search', async (req, res) => {
+  const q = (req.query.q || '').trim();
+  if (!q || q.length < 1) return res.json([]);
+  try {
+    const url = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(q)}&quotesCount=8&newsCount=0&listsCount=0`;
+    const r = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' }
+    });
+    const data = await r.json();
+    const quotes = (data.quotes || [])
+      .filter(item => item.quoteType === 'EQUITY' && item.symbol && (item.longname || item.shortname))
+      .slice(0, 8)
+      .map(item => ({ ticker: item.symbol, name: item.longname || item.shortname }));
+    res.json(quotes);
+  } catch (err) {
+    console.error('[search]', err.message);
+    res.json([]);
+  }
+});
+
+// ── Cache-bust endpoint (clears a single ticker so fresh data is fetched) ──
+app.delete('/api/cache/:ticker', async (req, res) => {
+  const ticker = req.params.ticker.toUpperCase().trim();
+  try {
+    if (REDIS_URL && REDIS_TOKEN) {
+      const base = (REDIS_URL || '').trim().replace(/\/$/, '');
+      await fetch(`${base}/del/${encodeURIComponent('stock:' + ticker)}`, {
+        method: 'POST', headers: redisHeaders()
+      });
+    } else {
+      memCache.delete('stock:' + ticker);
+    }
+    console.log(`[cache] Busted cache for ${ticker}`);
+    res.json({ ok: true, message: `Cache cleared for ${ticker}` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── Search endpoint ──
 app.get('/api/stock/:ticker', async (req, res) => {
   const ticker = req.params.ticker.toUpperCase().trim();

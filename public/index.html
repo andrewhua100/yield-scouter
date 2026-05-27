@@ -612,6 +612,22 @@
   .scatter-filter-btn:hover { border-color: var(--muted); color: var(--text); }
   .scatter-filter-btn.active { background: var(--accent); border-color: var(--accent); color: #0a0a0f; }
 
+  .autocomplete-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px; cursor: pointer;
+    border-bottom: 1px solid var(--border); transition: background 0.1s;
+  }
+  .autocomplete-item:last-child { border-bottom: none; }
+  .autocomplete-item:hover, .autocomplete-item.focused { background: var(--bg); }
+  .autocomplete-ticker {
+    font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 600;
+    color: var(--accent2); min-width: 52px;
+  }
+  .autocomplete-name {
+    font-size: 13px; color: var(--text); white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+
   @keyframes fadeUp {
     from { opacity: 0; transform: translateY(16px); }
     to   { opacity: 1; transform: translateY(0); }
@@ -685,12 +701,20 @@
       </div>
     </div>
     <div class="search-section">
-      <div class="ticker-label">Tickers (comma-separated)</div>
-      <div class="input-row">
-        <input type="text" id="tickerInput" placeholder="e.g. KO, T, VZ, MO, CAG" autocomplete="off">
+      <div class="ticker-label">Search by ticker or company name</div>
+      <div class="input-row" style="position:relative">
+        <div style="position:relative;flex:1">
+          <input type="text" id="tickerInput" placeholder="e.g. KO, Coca-Cola, Johnson…" autocomplete="off"
+            oninput="onTickerInput(event)" onkeydown="onTickerKeydown(event)">
+          <div id="tickerDropdown" style="
+            display:none; position:absolute; top:calc(100% + 6px); left:0; right:0; z-index:999;
+            background:var(--surface); border:1px solid var(--border); border-radius:10px;
+            overflow:hidden; box-shadow:0 8px 32px rgba(0,0,0,0.4);
+          "></div>
+        </div>
         <button id="searchBtn" onclick="runScreener()">Analyze</button>
       </div>
-      <p class="hint">Tip: Try KO, T, VZ, MO, XOM, ABBV, CAG, CPB, IBM, O</p>
+      <p class="hint">Tip: Search by name (Coca-Cola) or ticker (KO). Comma-separate for multiple.</p>
     </div>
     <div id="search-output"></div>
   </div>
@@ -1818,6 +1842,89 @@
       }]
     });
   }
+
+  // ── Autocomplete ──
+  let _acDebounce = null;
+  let _acFocusIdx = -1;
+  let _acResults  = [];
+
+  async function onTickerInput(e) {
+    const val = e.target.value;
+    const parts = val.split(',');
+    const query = parts[parts.length - 1].trim();
+    clearTimeout(_acDebounce);
+    if (query.length < 1) { closeDropdown(); return; }
+    _acDebounce = setTimeout(async () => {
+      try {
+        const res = await fetch('/api/search?q=' + encodeURIComponent(query));
+        _acResults = await res.json();
+        renderDropdown(_acResults);
+      } catch { closeDropdown(); }
+    }, 200);
+  }
+
+  function renderDropdown(results) {
+    const dd = document.getElementById('tickerDropdown');
+    if (!results.length) { closeDropdown(); return; }
+    _acFocusIdx = -1;
+    dd.innerHTML = results.map((r, i) => `
+      <div class="autocomplete-item" data-idx="${i}"
+        onmousedown="selectAutocomplete(${i})"
+        onmouseover="focusItem(${i})">
+        <span class="autocomplete-ticker">${r.ticker}</span>
+        <span class="autocomplete-name">${r.name}</span>
+      </div>`).join('');
+    dd.style.display = 'block';
+  }
+
+  function focusItem(idx) {
+    _acFocusIdx = idx;
+    document.querySelectorAll('.autocomplete-item').forEach((el, i) =>
+      el.classList.toggle('focused', i === idx));
+  }
+
+  function selectAutocomplete(idx) {
+    const item = _acResults[idx];
+    if (!item) return;
+    const input = document.getElementById('tickerInput');
+    const parts = input.value.split(',');
+    parts[parts.length - 1] = item.ticker;
+    input.value = parts.map(p => p.trim()).filter(Boolean).join(', ');
+    closeDropdown();
+    input.focus();
+  }
+
+  function closeDropdown() {
+    const dd = document.getElementById('tickerDropdown');
+    if (dd) dd.style.display = 'none';
+    _acFocusIdx = -1;
+    _acResults  = [];
+  }
+
+  function onTickerKeydown(e) {
+    const items = document.querySelectorAll('.autocomplete-item');
+    if (!items.length) {
+      if (e.key === 'Enter') runScreener();
+      return;
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      focusItem(Math.min(_acFocusIdx + 1, items.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      focusItem(Math.max(_acFocusIdx - 1, 0));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (_acFocusIdx >= 0) selectAutocomplete(_acFocusIdx);
+      else { closeDropdown(); runScreener(); }
+    } else if (e.key === 'Escape') {
+      closeDropdown();
+    }
+  }
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('#tickerInput') && !e.target.closest('#tickerDropdown')) closeDropdown();
+  });
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 </body>

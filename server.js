@@ -425,7 +425,14 @@ app.get('/api/search', async (req, res) => {
     });
     const data = await r.json();
     const quotes = (data.quotes || [])
-      .filter(item => item.quoteType === 'EQUITY' && item.symbol && (item.longname || item.shortname))
+      .filter(item =>
+        item.quoteType === 'EQUITY' &&
+        item.symbol &&
+        (item.longname || item.shortname) &&
+        !item.symbol.includes('.') &&   // drop foreign exchange suffixes (e.g. CCEPL.XC)
+        !item.symbol.includes('-') &&   // drop share class suffixes (e.g. BRK-B style variants)
+        /^[A-Z]{1,6}$/.test(item.symbol) // US tickers only
+      )
       .slice(0, 8)
       .map(item => ({ ticker: item.symbol, name: item.longname || item.shortname }));
     res.json(quotes);
